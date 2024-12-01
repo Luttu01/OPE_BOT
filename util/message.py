@@ -32,7 +32,7 @@ def embed_msg_error(content: str) -> Embed:
 def embed_msg_something_went_wrong() -> Embed:
     msg = Embed(
         title="Error",
-        description="Something went wrong",
+        description="Something went wrong, please try again.",
         color=Color.blue()
     )
     return msg

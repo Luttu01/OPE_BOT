@@ -1,6 +1,6 @@
 import threading
 
-from OPE_BOT.src.player import Player
+from opebot.src.player import Player
 
 class SongManager():
     queue: list[Player]  = []

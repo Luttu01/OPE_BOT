@@ -1,6 +1,6 @@
 from discord import Intents
 
-from OPE_BOT.config.paths import folder_path_cache
+from opebot.config.paths import folder_path_cache
 
 def init_intents() -> None:
     i = Intents.default()

@@ -3,8 +3,8 @@ import asyncio
 import json
 import datetime
 
-from OPE_BOT.src.botmanager import BotManager
-from OPE_BOT.config.paths import file_path_cache
+from opebot.src.botmanager import BotManager
+from opebot.config.paths import file_path_cache
 
 class Player(discord.PCMVolumeTransformer):
     def __init__(self, original, url, title, duration, volume = 1):
@@ -27,8 +27,6 @@ class Player(discord.PCMVolumeTransformer):
             data = await asyncio.get_event_loop().run_in_executor(None, lambda: BotManager.ytdl.extract_info(url, download=True))
             if data is None:
                 return None
-            print(data)
-            # filename = BotManager.ytdl.prepare_filename(data)
             if data.get('_type') == 'playlist':
                 print("Playlist detected. Extracting first entry as a single video...")
                 first_entry = data['entries'][0]
@@ -38,13 +36,12 @@ class Player(discord.PCMVolumeTransformer):
             else:
                 filename = BotManager.ytdl.prepare_filename(data)
                 duration = data.get('duration', None)
-            print(f"{filename}")
             if spotify_url:
                 await cls.update_json_cache(spotify_url, filename, data.get('title'), duration)
                 return cls(discord.FFmpegPCMAudio(filename), title=data.get('title'), url=spotify_url, duration=duration)
             else:
                 await cls.update_json_cache(url, filename, data.get('title'), duration)
-                return cls(discord.FFmpegPCMAudio(filename, **BotManager.ffmpeg_opts), title=data.get('title'), url=url, duration=duration)
+                return cls(discord.FFmpegPCMAudio(filename), title=data.get('title'), url=url, duration=duration)
 
     @staticmethod
     def check_url_in_cache(url):

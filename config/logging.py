@@ -1,6 +1,6 @@
 import logging
 
-from .paths import file_path_logs
+from opebot.config.paths import file_path_logs
 
 logging.basicConfig(
     level=logging.DEBUG,

@@ -1,10 +1,11 @@
 import os
 import yt_dlp
+import threading
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials as scc
 
-from OPE_BOT.util.init import init_ytdl_options, init_ffmpeg
+from opebot.util.init import init_ytdl_options, init_ffmpeg
 
 class BotManager():
     ytdl = yt_dlp.YoutubeDL(init_ytdl_options())
@@ -14,5 +15,12 @@ class BotManager():
     idle_timer: int = 0
     last_message: str = None
 
+    __lock = threading.Lock()
+
     def __init__(self):
         pass
+
+    @classmethod
+    def on_step(cls):
+        with cls.__lock:
+            cls.idle_timer += 1

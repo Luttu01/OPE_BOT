@@ -1,7 +1,8 @@
 import json
+import random
 
-from OPE_BOT.config.paths import file_path_aliases
-from OPE_BOT.util.res import get_url_from_alias
+from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_playRequestCounter, file_path_toRemove, file_path_tags
+from opebot.util.res import get_url_from_alias, get_cached_urls
 
 def add_alias(url, new_name):
     try:
@@ -30,3 +31,94 @@ def remove_alias(alias: str):
             return True
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(e)
+
+def get_random_cached_urls(n: int, mtag: str):
+    with open(file_path_cache, 'r') as r:
+        cache = json.load(r)
+    cached_urls = get_cached_urls()
+    urls = []
+    if mtag:
+        for url in cached_urls:
+            if check_tag(cache[url], mtag):
+                urls.append(url)
+        if urls:
+            cached_urls = urls
+        else:
+            return None
+    random.shuffle(cached_urls)
+    weights = [cache[url]['weight'] for url in cached_urls]
+    selection_weights = [1 / (1 + weight) for weight in weights]
+    total_weight = sum(selection_weights)
+    normalized_weights = [w / total_weight for w in selection_weights]
+    random_urls = random.choices(cached_urls, weights=normalized_weights, k=n)
+    for url in random_urls:
+        cache[url]['weight'] += 1
+    with open(file_path_cache, 'w') as w:
+        json.dump(cache, w, indent=4)
+    return list(set(random_urls))
+
+def check_tag(cache_entry_attributes, mtag):
+    cea = cache_entry_attributes
+    if 'tag' in cea:
+        return cea['tag'] == mtag
+    else:
+        return False
+    
+def add_tag(url: str, mtag: str):
+    with open(file_path_cache, 'r') as r:
+        cache = json.load(r)
+    
+    if 'tag' in cache[url]:
+        return cache[url]['tag']
+    else:
+        cache[url]['tag'] = mtag
+
+    with open(file_path_cache, 'w') as w:
+        json.dump(cache, w, indent=4)
+        return None
+    
+def update_url_counter(url, title):
+    try:
+        with open(file_path_urlCounter, 'r') as read_file:
+            open_json = json.load(read_file)
+        if url in open_json:
+            open_json[url][0] += 1
+        else:
+            open_json[url] = [1, title]
+        with open(file_path_urlCounter, 'w') as write_file:
+            json.dump(open_json, write_file, indent=4)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(e)
+
+def to_remove(new_tag):
+    try:
+        try:
+            with open(file_path_toRemove, 'r') as r:
+                data = json.load(r)
+                remove_list = data.get('to_remove', [])
+        except json.JSONDecodeError:
+            data = {}
+            remove_list = []
+        remove_list.append(new_tag)
+        with open(file_path_toRemove, 'w') as w:
+            data['to_remove'] = remove_list
+            json.dump(data, w, indent=4)
+        return True
+    except Exception:
+        return False
+    
+def create_tag(new_tag):
+    try:
+        try:
+            with open(file_path_tags, 'r') as r:
+                data = json.load(r)
+                tags = data.get('tags', [])
+        except json.JSONDecodeError:
+            tags = []         
+        tags.append(new_tag)    
+        with open(file_path_tags, 'w') as w:
+            data['tags'] = tags
+            json.dump(data, w, indent=4)   
+        return True
+    except Exception:
+        return False

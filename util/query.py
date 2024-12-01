@@ -2,9 +2,9 @@ import logging
 import os
 import googleapiclient.discovery as gdisc
 from urllib.parse import urlparse, parse_qs, urlunparse
-from OPE_BOT.util.res import get_cached_urls
-from OPE_BOT.src.botmanager import BotManager
-from OPE_BOT.src.player import Player
+from opebot.util.res import get_cached_urls
+from opebot.src.botmanager import BotManager
+from opebot.src.player import Player
 
 async def get_player(url: str):
     parsed_url = urlparse(url)
@@ -31,7 +31,6 @@ async def get_player(url: str):
         else:
             player = await Player.from_url(url)
     else:
-        print(f"{url}\n"*5)
         player = await Player.from_url(url)
 
     return player

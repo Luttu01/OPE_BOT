@@ -1,7 +1,7 @@
 import rapidfuzz
 
-from OPE_BOT.util.res import get_aliases, get_query_from_title, get_titles
-from OPE_BOT.util.validate import is_alias
+from opebot.util.res import get_aliases, get_query_from_title, get_titles
+from opebot.util.validate import is_alias
 
 def check_match(query: str) -> tuple[str, float] | tuple[None, None]:
     best_match, score = rapidfuzz.process.extractOne(query, 

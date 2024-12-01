@@ -1,5 +1,7 @@
 import json
-from OPE_BOT.config.paths import file_path_aliases, file_path_cache
+
+from opebot.config.paths import file_path_aliases, file_path_cache, file_path_tags
+from opebot.src.songmanager import SongManager
 
 def get_aliases():
     """Returns all aliases"""
@@ -57,7 +59,21 @@ def get_cached_urls():
 def get_title_from_url(_url: str):
     with open(f'{file_path_cache}', 'r') as read_file:
         cache = json.load(read_file)
-        for url in cache.items():
+        for url in cache:
             if url == _url:
                 return cache[url]['title']
         return False
+    
+def get_tags():
+    with open(file_path_tags, 'r') as r:
+        data = json.load(r)
+        return data['tags']
+
+def get_current_player_url():
+    return SongManager.current_player.url
+
+def get_current_player_duration():
+    return SongManager.current_player.duration
+
+def get_duration():
+    return SongManager.song_curr_duration
