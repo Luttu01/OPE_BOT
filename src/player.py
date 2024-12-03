@@ -32,16 +32,18 @@ class Player(discord.PCMVolumeTransformer):
                 first_entry = data['entries'][0]
                 url = first_entry['original_url']
                 duration = first_entry.get('duration', None)
+                title = first_entry.get('title', data.get('title'))
                 filename = BotManager.ytdl.prepare_filename(first_entry)
             else:
                 filename = BotManager.ytdl.prepare_filename(data)
                 duration = data.get('duration', None)
+                title = data.get('title')
             if spotify_url:
-                await cls.update_json_cache(spotify_url, filename, data.get('title'), duration)
-                return cls(discord.FFmpegPCMAudio(filename), title=data.get('title'), url=spotify_url, duration=duration)
+                await cls.update_json_cache(spotify_url, filename, title, duration)
+                return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration)
             else:
-                await cls.update_json_cache(url, filename, data.get('title'), duration)
-                return cls(discord.FFmpegPCMAudio(filename), title=data.get('title'), url=url, duration=duration)
+                await cls.update_json_cache(url, filename, title, duration)
+                return cls(discord.FFmpegPCMAudio(filename), title=title, url=url, duration=duration)
 
     @staticmethod
     def check_url_in_cache(url):

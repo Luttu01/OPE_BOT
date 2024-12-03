@@ -1,8 +1,9 @@
 import json
 import random
 
-from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_playRequestCounter, file_path_toRemove, file_path_tags
+from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
 from opebot.util.res import get_url_from_alias, get_cached_urls
+from opebot.src.error import Error
 
 def add_alias(url, new_name):
     try:
@@ -122,3 +123,19 @@ def create_tag(new_tag):
         return True
     except Exception:
         return False
+
+def extract_n_mtag(flags):
+    n, mtag = None, None
+    for flag in flags:
+        if flag.isdigit():
+            if n is not None:  
+                return Error.FLAG_ERROR, Error.FLAG_ERROR
+            n = int(flag)
+        else:  
+            if mtag is not None:  
+                return Error.FLAG_ERROR, Error.FLAG_ERROR
+            mtag = flag
+    if n is None:
+        n = 1
+
+    return n, mtag

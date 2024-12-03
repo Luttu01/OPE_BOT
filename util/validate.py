@@ -1,6 +1,8 @@
 from opebot.util.res import get_aliases, get_tags, get_alias_urls, get_alias_from_url
 from discord.ext.commands import Context
-from .message import embed_msg_error
+from opebot.util.message import embed_msg_error
+from opebot.src.error import Error
+from typing import Union
 
 def validate(arg):
     try:
@@ -42,7 +44,7 @@ async def validate_move(ctx: Context, queue: list, from_position: int, to_positi
         return False
     return True
 
-async def validate_new_alias(ctx: Context, url: str, new_alias: str):
+async def validate_new_alias(ctx: Context, url: str, new_alias: str) -> bool:
     if not is_url(url):
         await ctx.send(embed=embed_msg_error("Invalid url. Please make sure to send a valid youtube, spotify, or soundcloud link."))
         return False
@@ -53,3 +55,18 @@ async def validate_new_alias(ctx: Context, url: str, new_alias: str):
         await ctx.send(embed=embed_msg_error(f"That song already has the alias: {get_alias_from_url(url)}"))
         return False
     return True
+
+async def validate_random(ctx: Context, 
+                          n: Union[int, Error.FLAG_ERROR], 
+                          mtag: Union[str, Error.FLAG_ERROR]) -> bool:
+    if n == Error.FLAG_ERROR or mtag == Error.FLAG_ERROR:
+        await ctx.send(embed=embed_msg_error("Improper usage of flags.\n"
+                                             "For more help and details do:\n"
+                                             "-help random"))
+        return False
+    else:
+        if mtag:
+            if not is_mtag(mtag):
+                await ctx.send(embed=embed_msg_error("Not a valid tag."))
+                return False 
+        return True

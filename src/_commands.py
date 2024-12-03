@@ -3,9 +3,11 @@ import asyncio
 
 from random import shuffle as _shuffle
 from discord.ext.commands import Context
+from discord.ext import commands
 from discord.ext import tasks
 
 from opebot.src import bot
+from opebot.src.decorator import in_same_voice_channel
 from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager
 from opebot.util.query import get_player
@@ -13,13 +15,14 @@ from opebot.util.cache import check_match
 from opebot.util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
 from opebot.util.playback import _play, _now_playing, toggle_radio
 from opebot.util.validate import (validate, is_url, is_playlist, 
-                                   is_alias, is_mtag, validate_move, 
-                                   validate_new_alias)
+                                  is_alias, is_mtag, validate_move, 
+                                  validate_new_alias, validate_random)
 from opebot.util.res import (get_url_from_alias, get_aliases, get_title_from_url, 
-                              get_current_player_url, get_tags, get_current_player_duration,
-                              get_duration)
+                             get_current_player_url, get_tags, get_current_player_duration,
+                             get_duration)
 from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls, 
-                              add_tag, to_remove, create_tag)
+                             add_tag, to_remove, create_tag,
+                             extract_n_mtag)
 
 @bot.event
 async def on_ready():
@@ -32,8 +35,13 @@ async def on_ready():
 
     print(f'Logged in as {bot.user.name}')
 
+@bot.event
+async def on_command_error(ctx: Context, error):
+    if isinstance(error, commands.CheckFailure):
+        await ctx.send(embed=embed_msg_error(str(error)))
+
 @tasks.loop(seconds=1)
-async def tic(ctx: Context):
+async def on_step(ctx: Context):
     if ctx.voice_client:
         if len(ctx.voice_client.channel.members) == 1:
             await leave()
@@ -61,8 +69,8 @@ async def join(ctx: Context):
         return
     channel = ctx.message.author.voice.channel
     await channel.connect()
-    if not tic.is_running():
-        tic.start(ctx)
+    if not on_step.is_running():
+        on_step.start(ctx)
 
 @bot.command(name='play', 
              aliases=["p", "pl", "pla", "spela"], 
@@ -120,6 +128,8 @@ async def play(ctx: Context, *_query, **flags):
 
         if flags:
             if flags["tag"]:
+                if not is_mtag(flags["tag"]):
+                    return await ctx.send(embed=embed_msg_error("Invalid tag."))
                 existing_tag = add_tag(player.url, flags["tag"])
                 if existing_tag:
                     await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
@@ -133,6 +143,7 @@ async def play(ctx: Context, *_query, **flags):
 @bot.command(name="skip", 
              aliases=["s", "sk", "ski", "nästa"], 
              help="Skip current song.")
+@in_same_voice_channel()
 async def skip(ctx: Context):
     if not ctx.voice_client or not ctx.voice_client.is_playing():
         await ctx.send(embed=embed_msg("No song is currently playing."))
@@ -148,26 +159,29 @@ async def skip(ctx: Context):
 
 @bot.command(name='leave', 
              aliases=["lämna"], 
-             help='Bot clears queue and leaves channel')
+             help='Bot clears queue and leaves channel.')
+@in_same_voice_channel()
 async def leave(ctx: Context):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_connected():
         SongManager.queue.clear()
         await voice_client.disconnect()
-        tic.stop()
+        on_step.stop()
 
 @bot.command(name='shuffle', 
              aliases=["sh", "shu", "shuf", "shuff", "shuffl", "blanda"], 
              help='Shuffle queue')
+@in_same_voice_channel()
 async def shuffle(ctx: Context):
     if len(SongManager.queue) > 1:
         _shuffle(SongManager.queue)
-        await ctx.send(embed=embed_msg("Queue has been shuffled."))
+        await ctx.send(embed=embed_msg_error("Queue has been shuffled."))
     else:
-        await ctx.send(embed=embed_msg("Not enough songs in the queue to shuffle."))
+        await ctx.send(embed=embed_msg_error("Not enough songs in the queue to shuffle."))
 
 @bot.command(name='remove', 
              help='Remove first, or given position, from queue')
+@in_same_voice_channel()
 async def remove(ctx: Context, position: int = 1):
     queue = SongManager.queue
     if len(queue) > 0:
@@ -175,13 +189,14 @@ async def remove(ctx: Context, position: int = 1):
             removed_song = queue.pop(position - 1)
             await ctx.send(embed=embed_msg(removed_song.title, "Removed from queue"))
         else:
-            await ctx.send(embed=embed_msg(f"Invalid position: {position}."))
+            await ctx.send(embed=embed_msg_error(f"Invalid position: {position}."))
     else:
-        await ctx.send(embed=embed_msg("The queue is currently empty."))
+        await ctx.send(embed=embed_msg_error("The queue is currently empty."))
 
 @bot.command(name='queue', 
              aliases=['q', "qu", "que", "queu", "kö"], 
              help='Display queue')
+@in_same_voice_channel()
 async def show_queue(ctx: Context):
     queue = SongManager.queue
     if len(queue) == 0:
@@ -198,6 +213,7 @@ async def show_queue(ctx: Context):
                    "moves song in position 7 to 2\n"
                    "or leave out target position and it defaults to position 1\n"
                    "-move 7"))
+@in_same_voice_channel()
 async def move(ctx: Context, from_position: int, to_position: int = 1):
     queue = SongManager.queue
     if not await validate_move(ctx, queue, from_position, to_position):
@@ -217,6 +233,7 @@ async def move(ctx: Context, from_position: int, to_position: int = 1):
                  "You can then use this alias to query that song\n"
                  "-play your_alias")
                  )
+@in_same_voice_channel()
 async def alias(ctx: Context, url: str, *_new_alias: str):
     new_alias = ' '.join(_new_alias).lower()
     if not validate_new_alias(ctx, url, new_alias):
@@ -228,6 +245,7 @@ async def alias(ctx: Context, url: str, *_new_alias: str):
 @bot.command(name="rmalias", 
              help=("remove given alias"
                    "-rmalias insert_alias"))
+@in_same_voice_channel()
 async def rmalias(ctx: Context, alias: str):
     if not is_alias(alias):
         await ctx.send(embed=embed_msg_error("Not an existing alias."))
@@ -237,6 +255,7 @@ async def rmalias(ctx: Context, alias: str):
         await ctx.send(embed=embed_msg(f"Successfully removed alias: {alias}"))
 
 @bot.command(name="aliases", help="Show aliases")
+@in_same_voice_channel()
 async def aliases(ctx: Context):
     _aliases = get_aliases()
     msg = ""
@@ -250,22 +269,29 @@ async def aliases(ctx: Context):
                    "Or you can queue an X amount of songs\n"
                    "-random 5\n"
                    "You can also specify a certain tag of songs\n"
-                   "-random 5 rap"))
-async def play_random_song(ctx: Context, n: int = 1, mtag: str = ""):
-    if mtag:
-        if not is_mtag(mtag):
-            return await ctx.send(embed=embed_msg_error("Not a valid tag."))
-    random_urls = get_random_cached_urls(n, mtag)
-    if random_urls:
-        for url in random_urls:
-            await play(ctx, url)
-            await asyncio.sleep(1)
+                   "-random 5 your_tag"))
+async def play_random_song(ctx: Context, *flags):
+    if len(flags) > 2:
+        return await ctx.send(embed=embed_msg_error("Too many flags\n"
+                                                    "For more help and details do:\n"
+                                                    "-help random"))
+    n, mtag = extract_n_mtag(flags)
+    success = await validate_random(ctx, n, mtag)
+    if success:
+        random_urls = get_random_cached_urls(n, mtag)
+        if random_urls:
+            for url in random_urls:
+                await play(ctx, url)
+                await asyncio.sleep(1) # Deload at large workload of requests
+        else:
+            return await ctx.send(embed=embed_msg_error("No songs with that tag."))
     else:
-        return await ctx.send(embed=embed_msg_error("No songs with that tag."))
+        return await ctx.send(embed=embed_msg_something_went_wrong())
     
 @bot.command(name="radio", 
              help=("Toggle radio mode.\n"
                     "If no songs are queued, play a random song."))
+@in_same_voice_channel()
 async def radio(ctx: Context, station: str = ""):
     if station:
         SongManager.radio_station = station
@@ -277,21 +303,23 @@ async def radio(ctx: Context, station: str = ""):
         SongManager.radio_station = ""
 
 @bot.command(name="trash", help="Skip and mark current song to be deleted at next boot.")
+@in_same_voice_channel()
 async def trash(ctx: Context):
     success = to_remove(get_current_player_url())
     if success:
         await ctx.send(embed=embed_msg("Successfully marked song to be deleted."))
         await skip(ctx)
     else:
-        await ctx.send(embed="Something went wrong.")
+        await ctx.send(embed=embed_msg_something_went_wrong())
 
 @bot.command(name="tag", 
              help=("Create a new music tag\n"
                     "-tag your_tag\n"
                     "then add it to a song in -play command\n"
-                    "-play your_query your_tag\n"
+                    "-play your_query tag=your_tag\n"
                     "You can then use this tag in -random command to play songs with that tag\n"
                     "-random your_tag"))
+@in_same_voice_channel()
 async def tag(ctx: Context, new_tag: str):
     if new_tag in get_tags():
         await ctx.send(embed=embed_msg_error("That tag already exists"))
@@ -302,10 +330,10 @@ async def tag(ctx: Context, new_tag: str):
         return
     else:
         await ctx.send(embed=embed_msg_something_went_wrong())
-        return
     
 @bot.command(name="duration", 
-             help="Show how far through the current")
+             help="Show duration of current song.")
+@in_same_voice_channel()
 async def duration(ctx: Context):
     if not ctx.voice_client.is_playing():
         await ctx.send(embed=embed_msg_error("Nothing currently playing to display duration of."))
@@ -315,5 +343,5 @@ async def duration(ctx: Context):
         return
     currently_at_minutes, currently_at_seconds = divmod(get_duration(), 60)
     player_dur_minutes, player_dur_seconds     = divmod(get_current_player_duration(), 60)
-    await ctx.send(embed=embed_msg(f"{currently_at_minutes}:{currently_at_seconds} / {player_dur_minutes}:{player_dur_seconds}",
+    await ctx.send(embed=embed_msg(f"{currently_at_minutes}:{currently_at_seconds:02d} / {player_dur_minutes}:{player_dur_seconds:02d}",
                              "Duration"))
