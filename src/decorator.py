@@ -9,6 +9,5 @@ def in_same_voice_channel():
             raise CheckFailure("You are not connected to any voice channel")
         if ctx.author.voice.channel != ctx.voice_client.channel:
             raise CheckFailure("You must be in the same channel as the bot.")
-        
         return True
     return commands.check(predicate)

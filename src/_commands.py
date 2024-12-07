@@ -7,16 +7,17 @@ from discord.ext import commands
 from discord.ext import tasks
 
 from opebot.src import bot
-from opebot.src.decorator import in_same_voice_channel
 from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager
+from opebot.src.error import Error
+from opebot.src.decorator import in_same_voice_channel
 from opebot.util.query import get_player
 from opebot.util.cache import check_match
 from opebot.util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
 from opebot.util.playback import _play, _now_playing, toggle_radio
 from opebot.util.validate import (validate, is_url, is_playlist, 
                                   is_alias, is_mtag, validate_move, 
-                                  validate_new_alias, validate_random)
+                                  validate_new_alias, validate_random, validate_player)
 from opebot.util.res import (get_url_from_alias, get_aliases, get_title_from_url, 
                              get_current_player_url, get_tags, get_current_player_duration,
                              get_duration)
@@ -26,9 +27,10 @@ from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls,
 
 @bot.event
 async def on_ready():
-    #TODO:
-    #clear_logs()
-    #reset_weighting()
+    # TODO:
+    # clear_logs()
+    # reset_weighting()
+    # remove_doomed_urls()
 
     __song_manager = SongManager()
     __bot_manager = BotManager()
@@ -80,7 +82,7 @@ async def join(ctx: Context):
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
-    if validate(ctx) == AssertionError:
+    if not validate(ctx):
         await ctx.send(embed=embed_msg_something_went_wrong())
         return
 
@@ -97,27 +99,27 @@ async def play(ctx: Context, *_query, **flags):
         if is_playlist(query):
             await ctx.send(embed=embed_msg_error("Playlists and albums are not supported."))
             return
-
         if not is_url(query) and not is_alias(query):
             pot_match, score = check_match(query_lower)
-            print(pot_match)
             if pot_match:
                 SongManager.last_request = query
                 query = pot_match
                 if is_url(pot_match):
                     pot_match = get_title_from_url(pot_match)
                 await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}"))
-        
         try:
-            if query_lower in get_aliases():
+            # TODO: clean this up
+            if query_lower in get_aliases(): 
                 query = get_url_from_alias(query_lower)
+            elif query in get_aliases():
+                query = get_url_from_alias(query)
             player = await get_player(query)
-            print("after get player\n")
-            if player is None:
-                await ctx.send(embed=embed_msg("Problem downloading the song, please try again."))
+            if not await validate_player(ctx, player):
+                return
             if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
                 SongManager.add_to_q(player)
-                await ctx.send(embed=embed_msg(f"{player.title!r} added to queue, position {len(SongManager.queue)}"))
+                await ctx.send(embed=embed_msg(f"{player.title!r} added to queue.\n"
+                                               f"position: {len(SongManager.queue)}"))
             else:
                 await _play(ctx, player)
         except:
@@ -126,15 +128,14 @@ async def play(ctx: Context, *_query, **flags):
 
         #TODO: flags
 
-        if flags:
-            if flags["tag"]:
-                if not is_mtag(flags["tag"]):
-                    return await ctx.send(embed=embed_msg_error("Invalid tag."))
-                existing_tag = add_tag(player.url, flags["tag"])
-                if existing_tag:
-                    await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
-                else:
-                    await ctx.send(embed=embed_msg(f"Successfully added the tag: {flags['tag']!r}"))
+        if "tag" in flags:
+            if not is_mtag(flags["tag"]):
+                return await ctx.send(embed=embed_msg_error("Invalid tag."))
+            existing_tag = add_tag(player.url, flags["tag"])
+            if existing_tag:
+                await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
+            else:
+                await ctx.send(embed=embed_msg(f"Successfully added the tag: {flags['tag']!r}"))
 
         # if 't' not in flags:
         #     update_url_counter(url, player.title)
@@ -276,8 +277,7 @@ async def play_random_song(ctx: Context, *flags):
                                                     "For more help and details do:\n"
                                                     "-help random"))
     n, mtag = extract_n_mtag(flags)
-    success = await validate_random(ctx, n, mtag)
-    if success:
+    if await validate_random(ctx, n, mtag):
         random_urls = get_random_cached_urls(n, mtag)
         if random_urls:
             for url in random_urls:
@@ -345,3 +345,5 @@ async def duration(ctx: Context):
     player_dur_minutes, player_dur_seconds     = divmod(get_current_player_duration(), 60)
     await ctx.send(embed=embed_msg(f"{currently_at_minutes}:{currently_at_seconds:02d} / {player_dur_minutes}:{player_dur_seconds:02d}",
                              "Duration"))
+    
+# TODO: pause

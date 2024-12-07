@@ -2,9 +2,11 @@ import discord
 import asyncio
 import json
 import datetime
+import os
 
 from opebot.src.botmanager import BotManager
-from opebot.config.paths import file_path_cache
+from opebot.config.paths import file_path_cache, folder_path_cache
+from opebot.src.error import Error
 
 class Player(discord.PCMVolumeTransformer):
     def __init__(self, original, url, title, duration, volume = 1):
@@ -38,6 +40,10 @@ class Player(discord.PCMVolumeTransformer):
                 filename = BotManager.ytdl.prepare_filename(data)
                 duration = data.get('duration', None)
                 title = data.get('title')
+            if duration >= 600:
+                if filename.startswith(folder_path_cache) and os.path.isfile(filename):
+                    os.remove(filename)
+                return Error.DURATION_ERROR
             if spotify_url:
                 await cls.update_json_cache(spotify_url, filename, title, duration)
                 return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration)
@@ -74,6 +80,7 @@ class Player(discord.PCMVolumeTransformer):
                 'volume': 0.5,
                 'duration': duration
             }
+
         cache[url] = _new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration)
         print(_new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration))
         with open(rf'{file_path_cache}', 'w') as f:

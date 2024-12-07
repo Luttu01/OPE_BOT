@@ -1,14 +1,16 @@
 from opebot.util.res import get_aliases, get_tags, get_alias_urls, get_alias_from_url
-from discord.ext.commands import Context
 from opebot.util.message import embed_msg_error
 from opebot.src.error import Error
 from typing import Union
+from discord.ext.commands import Context
+from opebot.src.player import Player
 
 def validate(arg):
     try:
         assert arg != None
+        return True
     except AssertionError:
-        return AssertionError 
+        return False 
     
 def is_url(query):
     return "youtube" in query or \
@@ -70,3 +72,12 @@ async def validate_random(ctx: Context,
                 await ctx.send(embed=embed_msg_error("Not a valid tag."))
                 return False 
         return True
+
+async def validate_player(ctx: Context, player: Player) -> bool:
+    if player is None:
+        await ctx.send(embed=embed_msg_error("Problem downloading the song, please try again."))
+        return False
+    elif player == Error.DURATION_ERROR:
+        await ctx.send(embed=embed_msg_error("Songs over 10 minutes are not supported."))
+        return False
+    return True
