@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import datetime
 
 from random import shuffle as _shuffle
 from discord.ext.commands import Context
@@ -9,10 +10,9 @@ from discord.ext import tasks
 from opebot.src import bot
 from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager
-from opebot.src.error import Error
 from opebot.src.decorator import in_same_voice_channel
 from opebot.util.query import get_player
-from opebot.util.cache import check_match
+from opebot.util.cache import check_match, reset_weighting, remove_doomed_urls
 from opebot.util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
 from opebot.util.playback import _play, _now_playing, toggle_radio
 from opebot.util.validate import (validate, is_url, is_playlist, 
@@ -29,8 +29,9 @@ from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls,
 async def on_ready():
     # TODO:
     # clear_logs()
-    # reset_weighting()
-    # remove_doomed_urls()
+    remove_doomed_urls()
+    if datetime.datetime.now().weekday() == BotManager.MONDAY:
+        reset_weighting()
 
     __song_manager = SongManager()
     __bot_manager = BotManager()
@@ -41,6 +42,9 @@ async def on_ready():
 async def on_command_error(ctx: Context, error):
     if isinstance(error, commands.CheckFailure):
         await ctx.send(embed=embed_msg_error(str(error)))
+    elif isinstance(error, commands.CommandNotFound):
+        await ctx.send(embed=embed_msg_error(f"Command not found: {ctx.message.content}"))
+        print(f"Command not found: {ctx.message.content}")
 
 @tasks.loop(seconds=1)
 async def on_step(ctx: Context):
@@ -48,7 +52,6 @@ async def on_step(ctx: Context):
         if len(ctx.voice_client.channel.members) == 1:
             await leave()
             return
-        #TODO: BotManager.on_step()
         if ctx.voice_client.is_playing():
             SongManager.increment_duration()
         elif not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
@@ -82,6 +85,7 @@ async def join(ctx: Context):
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
+    print(flags)
     if not validate(ctx):
         await ctx.send(embed=embed_msg_something_went_wrong())
         return
@@ -97,16 +101,15 @@ async def play(ctx: Context, *_query, **flags):
 
     async with ctx.typing():
         if is_playlist(query):
-            await ctx.send(embed=embed_msg_error("Playlists and albums are not supported."))
-            return
-        if not is_url(query) and not is_alias(query):
+            return await ctx.send(embed=embed_msg_error("Playlists and albums are not supported."))
+        if not is_url(query) and not is_alias(query) and "search" not in flags:
             pot_match, score = check_match(query_lower)
             if pot_match:
                 SongManager.last_request = query
                 query = pot_match
                 if is_url(pot_match):
                     pot_match = get_title_from_url(pot_match)
-                await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}"))
+                await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}%"))
         try:
             # TODO: clean this up
             if query_lower in get_aliases(): 
@@ -118,8 +121,9 @@ async def play(ctx: Context, *_query, **flags):
                 return
             if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
                 SongManager.add_to_q(player)
-                await ctx.send(embed=embed_msg(f"{player.title!r} added to queue.\n"
-                                               f"position: {len(SongManager.queue)}"))
+                await ctx.send(embed=embed_msg(f"{player.title}\n"
+                                               f"position {len(SongManager.queue)}",
+                                               "Added to queue."))
             else:
                 await _play(ctx, player)
         except:
@@ -156,7 +160,7 @@ async def skip(ctx: Context):
     #     return
 
     ctx.voice_client.stop()
-    await ctx.send(embed=embed_msg(f"Skipped the song: {_now_playing()}."))
+    await ctx.send(embed=embed_msg(f"{_now_playing()}.", "Skipped song"))
 
 @bot.command(name='leave', 
              aliases=["lämna"], 
@@ -232,8 +236,7 @@ async def move(ctx: Context, from_position: int, to_position: int = 1):
                  "Example:\n"
                  "-alias url your_alias\n"
                  "You can then use this alias to query that song\n"
-                 "-play your_alias")
-                 )
+                 "-play your_alias"))
 @in_same_voice_channel()
 async def alias(ctx: Context, url: str, *_new_alias: str):
     new_alias = ' '.join(_new_alias).lower()
@@ -282,7 +285,7 @@ async def play_random_song(ctx: Context, *flags):
         if random_urls:
             for url in random_urls:
                 await play(ctx, url)
-                await asyncio.sleep(1) # Deload at large workload of requests
+                await asyncio.sleep(.5) # Deload at large workload of requests
         else:
             return await ctx.send(embed=embed_msg_error("No songs with that tag."))
     else:
@@ -344,6 +347,13 @@ async def duration(ctx: Context):
     currently_at_minutes, currently_at_seconds = divmod(get_duration(), 60)
     player_dur_minutes, player_dur_seconds     = divmod(get_current_player_duration(), 60)
     await ctx.send(embed=embed_msg(f"{currently_at_minutes}:{currently_at_seconds:02d} / {player_dur_minutes}:{player_dur_seconds:02d}",
-                             "Duration"))
-    
-# TODO: pause
+                                    "Duration"))
+
+@bot.command(name="search",
+            help="Do literal search if cache match was faulty.")
+@in_same_voice_channel()
+async def search(ctx: Context):
+    if SongManager.last_request:
+        await play(ctx, SongManager.last_request, search=True)
+    else:
+        return await ctx.send(embed=embed_msg_error("No query to search."))

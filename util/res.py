@@ -23,7 +23,6 @@ def get_url_from_alias(alias):
     with open(f'{file_path_aliases}', 'r') as read_file:
         aliases = json.load(read_file)
         for url, current_alias in aliases.items():
-            print(url); print(current_alias)
             if current_alias == alias:
                 return url
         return False

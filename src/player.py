@@ -9,12 +9,13 @@ from opebot.config.paths import file_path_cache, folder_path_cache
 from opebot.src.error import Error
 
 class Player(discord.PCMVolumeTransformer):
-    def __init__(self, original, url, title, duration, volume = 1):
+    def __init__(self, original, url, title, duration, volume = 0.5):
         super().__init__(original, volume)
         self.original = original
-        self.title = title
-        self.url = url
+        self.title    = title
+        self.url      = url
         self.duration = duration
+        self.volume   = volume
 
     @classmethod
     async def from_url(cls, url, *, spotify_url: str = None):
@@ -22,17 +23,20 @@ class Player(discord.PCMVolumeTransformer):
         if cache:
             filename, title, volume, duration = cache
             if spotify_url:
-                return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration)
+                return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration, volume=volume)
             else:
-                return cls(discord.FFmpegPCMAudio(filename), title=title, url=url, duration=duration)
+                return cls(discord.FFmpegPCMAudio(filename), title=title, url=url, duration=duration, volume=volume)
         else:
-            data = await asyncio.get_event_loop().run_in_executor(None, lambda: BotManager.ytdl.extract_info(url, download=True))
+            data = await asyncio.\
+                         get_event_loop().\
+                         run_in_executor(None, 
+                                         lambda: BotManager.ytdl.extract_info(url, download=True))
             if data is None:
                 return None
             if data.get('_type') == 'playlist':
                 print("Playlist detected. Extracting first entry as a single video...")
                 first_entry = data['entries'][0]
-                url = first_entry['original_url']
+                url = first_entry.get('original_url')
                 duration = first_entry.get('duration', None)
                 title = first_entry.get('title', data.get('title'))
                 filename = BotManager.ytdl.prepare_filename(first_entry)
@@ -41,7 +45,7 @@ class Player(discord.PCMVolumeTransformer):
                 duration = data.get('duration', None)
                 title = data.get('title')
             if duration >= 600:
-                if filename.startswith(folder_path_cache) and os.path.isfile(filename):
+                if filename.startswith(folder_path_cache) and os.path.isfile(filename): # Ensure safe path
                     os.remove(filename)
                 return Error.DURATION_ERROR
             if spotify_url:

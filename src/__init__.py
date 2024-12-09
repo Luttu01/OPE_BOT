@@ -1,10 +1,10 @@
 from discord.ext import commands
 from opebot.util.init import init_intents
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 __author__  = 'Erik Luttu'
 
-bot = commands.Bot(command_prefix = 'o-', 
+bot = commands.Bot(command_prefix = '-', 
                    intents = init_intents(),
                    case_insensitive = True)
 
