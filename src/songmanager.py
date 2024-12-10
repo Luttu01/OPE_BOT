@@ -8,6 +8,7 @@ class SongManager():
     radio_mode: bool = False
     radio_station: str = None
     last_request: str = None
+    last_player: Player = None
     song_duration: int = 0
     song_curr_duration: int = 0
     song_is_paued: bool = False    

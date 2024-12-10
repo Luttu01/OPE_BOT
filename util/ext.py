@@ -34,6 +34,7 @@ def remove_alias(alias: str):
         print(e)
 
 def get_random_cached_urls(n: int, mtag: str):
+    """Extract n amount random urls, using inverse weighting"""
     with open(file_path_cache, 'r') as r:
         cache = json.load(r)
     cached_urls = get_cached_urls()

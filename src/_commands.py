@@ -85,7 +85,6 @@ async def join(ctx: Context):
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
-    print(flags)
     if not validate(ctx):
         await ctx.send(embed=embed_msg_something_went_wrong())
         return
@@ -93,10 +92,18 @@ async def play(ctx: Context, *_query, **flags):
     if not ctx.voice_client:
         await join(ctx)
 
-    logging.debug(f"query is: {_query}")
-    logging.debug(f"flags are: {flags}")
+    if "random" not in flags:
+        SongManager.last_player = None
+        SongManager.last_request = ""
+    
+    if (mtag := list(_query)[-1]) in get_tags():
+        query = ' '.join(_query[:-1])
+        print(mtag)
+        print(query)
+    else:
+        mtag = None
+        query = ' '.join(_query)
 
-    query = ' '.join(_query)
     query_lower = query.lower()
 
     async with ctx.typing():
@@ -119,6 +126,8 @@ async def play(ctx: Context, *_query, **flags):
             player = await get_player(query)
             if not await validate_player(ctx, player):
                 return
+            if "random" not in flags and "search" not in flags:
+                SongManager.last_player = player
             if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
                 SongManager.add_to_q(player)
                 await ctx.send(embed=embed_msg(f"{player.title}\n"
@@ -132,14 +141,16 @@ async def play(ctx: Context, *_query, **flags):
 
         #TODO: flags
 
-        if "tag" in flags:
-            if not is_mtag(flags["tag"]):
+        print(mtag)
+        if mtag:
+            print(1)
+            if not is_mtag(mtag):
                 return await ctx.send(embed=embed_msg_error("Invalid tag."))
-            existing_tag = add_tag(player.url, flags["tag"])
+            existing_tag = add_tag(player.url, mtag)
             if existing_tag:
                 await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
             else:
-                await ctx.send(embed=embed_msg(f"Successfully added the tag: {flags['tag']!r}"))
+                await ctx.send(embed=embed_msg(f"Successfully added the tag: {mtag!r}"))
 
         # if 't' not in flags:
         #     update_url_counter(url, player.title)
@@ -284,7 +295,7 @@ async def play_random_song(ctx: Context, *flags):
         random_urls = get_random_cached_urls(n, mtag)
         if random_urls:
             for url in random_urls:
-                await play(ctx, url)
+                await play(ctx, url, random=True)
                 await asyncio.sleep(.5) # Deload at large workload of requests
         else:
             return await ctx.send(embed=embed_msg_error("No songs with that tag."))
@@ -355,5 +366,10 @@ async def duration(ctx: Context):
 async def search(ctx: Context):
     if SongManager.last_request:
         await play(ctx, SongManager.last_request, search=True)
+        SongManager.last_request = ""
+        if SongManager.queue:
+           SongManager.queue.remove(SongManager.last_player)
+        else:
+            await skip(ctx)
     else:
         return await ctx.send(embed=embed_msg_error("No query to search."))
