@@ -1,9 +1,11 @@
+import datetime
 from opebot.util.res import get_aliases, get_tags, get_alias_urls, get_alias_from_url
 from opebot.util.message import embed_msg_error
 from opebot.src.error import Error
 from typing import Union
 from discord.ext.commands import Context
 from opebot.src.player import Player
+from opebot.src.botmanager import BotManager
 
 def validate(arg):
     try:
@@ -71,6 +73,9 @@ async def validate_random(ctx: Context,
             if not is_mtag(mtag):
                 await ctx.send(embed=embed_msg_error("Not a valid tag."))
                 return False 
+            if mtag == "jul" and datetime.datetime.now().month != BotManager.DECEMBER:
+                await ctx.send(embed=embed_msg_error("Christmas songs are only allowed during month of December."))
+                return False
         return True
 
 async def validate_player(ctx: Context, player: Player) -> bool:

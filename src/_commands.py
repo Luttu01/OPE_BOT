@@ -23,7 +23,7 @@ from opebot.util.res import (get_url_from_alias, get_aliases, get_title_from_url
                              get_duration)
 from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls, 
                              add_tag, to_remove, create_tag,
-                             extract_n_mtag)
+                             extract_n_mtag, extract_query_mtag)
 
 @bot.event
 async def on_ready():
@@ -63,7 +63,7 @@ async def on_step(ctx: Context):
                 await _play(ctx, next_song)
             elif SongManager.radio_mode:
                 if SongManager.radio_station:
-                    await play_random_song(ctx, mtag=SongManager.radio_station)
+                    await play_random_song(ctx, SongManager.radio_station)
                 else:
                     await play_random_song(ctx)
 
@@ -81,7 +81,7 @@ async def join(ctx: Context):
              aliases=["p", "pl", "pla", "spela"], 
              help=("Plays given url or search\n"
                    "You can add a tag (presuming it exists, otherwise you can create one using the -tag command) to your query to group it with other songs of the same tag\n"
-                   "-play your_query tag=your_tag\n"
+                   "-play <your_query> <your_tag>\n"
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
@@ -95,15 +95,8 @@ async def play(ctx: Context, *_query, **flags):
     if "random" not in flags:
         SongManager.last_player = None
         SongManager.last_request = ""
-    
-    if (mtag := list(_query)[-1]) in get_tags():
-        query = ' '.join(_query[:-1])
-        print(mtag)
-        print(query)
-    else:
-        mtag = None
-        query = ' '.join(_query)
 
+    query, mtag = extract_query_mtag(_query)
     query_lower = query.lower()
 
     async with ctx.typing():
@@ -371,5 +364,6 @@ async def search(ctx: Context):
            SongManager.queue.remove(SongManager.last_player)
         else:
             await skip(ctx)
+        SongManager.last_player = None
     else:
         return await ctx.send(embed=embed_msg_error("No query to search."))

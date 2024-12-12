@@ -4,6 +4,7 @@ import random
 from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
 from opebot.util.res import get_url_from_alias, get_cached_urls
 from opebot.src.error import Error
+from opebot.util.res import get_tags
 
 def add_alias(url, new_name):
     try:
@@ -140,3 +141,12 @@ def extract_n_mtag(flags):
         n = 1
 
     return n, mtag
+
+def extract_query_mtag(_query: tuple[str]):
+    if _query[-1] in get_tags():
+        mtag = _query[-1]
+        query = ' '.join(_query[:-1])
+    else:
+        mtag = None
+        query = ' '.join(_query)
+    return query, mtag

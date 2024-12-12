@@ -11,7 +11,8 @@ class SongManager():
     last_player: Player = None
     song_duration: int = 0
     song_curr_duration: int = 0
-    song_is_paued: bool = False    
+    song_is_paued: bool = False
+
 
     __lock = threading.Lock()
 

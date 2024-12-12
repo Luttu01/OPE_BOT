@@ -13,7 +13,9 @@ class BotManager():
                                   client_secret=os.getenv('SPOTIFY_CLIENT_SECRET')))
     idle_timer: int = 0
     last_message: str = None
+    
     MONDAY: int = 0
+    DECEMBER: int = 12    
 
     __lock = threading.Lock()
 
