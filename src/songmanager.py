@@ -13,7 +13,6 @@ class SongManager():
     song_curr_duration: int = 0
     song_is_paued: bool = False
 
-
     __lock = threading.Lock()
 
     def __init__(self):

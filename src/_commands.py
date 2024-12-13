@@ -12,7 +12,8 @@ from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager
 from opebot.src.decorator import in_same_voice_channel
 from opebot.util.query import get_player
-from opebot.util.cache import check_match, reset_weighting, remove_doomed_urls
+from opebot.util.cache import (check_match, reset_weighting, remove_doomed_urls,
+                               get_songs_with_tag)
 from opebot.util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
 from opebot.util.playback import _play, _now_playing, toggle_radio
 from opebot.util.validate import (validate, is_url, is_playlist, 
@@ -134,9 +135,7 @@ async def play(ctx: Context, *_query, **flags):
 
         #TODO: flags
 
-        print(mtag)
         if mtag:
-            print(1)
             if not is_mtag(mtag):
                 return await ctx.send(embed=embed_msg_error("Invalid tag."))
             existing_tag = add_tag(player.url, mtag)
@@ -244,7 +243,7 @@ async def move(ctx: Context, from_position: int, to_position: int = 1):
 @in_same_voice_channel()
 async def alias(ctx: Context, url: str, *_new_alias: str):
     new_alias = ' '.join(_new_alias).lower()
-    if not validate_new_alias(ctx, url, new_alias):
+    if not await validate_new_alias(ctx, url, new_alias):
         return
     success = add_alias(url, new_alias)
     if success:
@@ -301,7 +300,11 @@ async def play_random_song(ctx: Context, *flags):
 @in_same_voice_channel()
 async def radio(ctx: Context, station: str = ""):
     if station:
-        SongManager.radio_station = station
+        if is_mtag(station):
+            SongManager.radio_station = station
+        else:
+            return await ctx.send(embed=embed_msg_error("Not a valid radio station.\n"
+                                                        "do -tags for valid stations"))
     _radio = toggle_radio()
     if _radio:
         await ctx.send(embed=embed_msg("Radio has been turned on."))
@@ -323,7 +326,7 @@ async def trash(ctx: Context):
              help=("Create a new music tag\n"
                     "-tag your_tag\n"
                     "then add it to a song in -play command\n"
-                    "-play your_query tag=your_tag\n"
+                    "-play your_query <your_tag>\n"
                     "You can then use this tag in -random command to play songs with that tag\n"
                     "-random your_tag"))
 @in_same_voice_channel()
@@ -367,3 +370,21 @@ async def search(ctx: Context):
         SongManager.last_player = None
     else:
         return await ctx.send(embed=embed_msg_error("No query to search."))
+    
+@bot.command(name="tags",
+             help="Show existing tags\n"
+                  "-tags"
+                  "or count how many songs have given tag"
+                  "-tags <tag>")
+@in_same_voice_channel()
+async def tags(ctx: Context, mtag: str = None):
+    if not mtag:
+        msg = ""
+        for tag in get_tags():
+            msg += f"{tag}\n"
+        return await ctx.send(embed=embed_msg(msg, "Existing tags."))
+    if mtag:
+        if not is_mtag(mtag):
+            return await ctx.send(embed=embed_msg_error("Not an existing tag."))
+    quant = get_songs_with_tag(mtag, True)
+    return await ctx.send(embed=embed_msg(f"There are {quant} songs with that tag."))

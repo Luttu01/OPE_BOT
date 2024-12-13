@@ -5,6 +5,7 @@ import os
 from opebot.config.paths import file_path_cache, file_path_toRemove, folder_path_cache
 from opebot.util.res import get_aliases, get_query_from_title, get_titles
 from opebot.util.validate import is_alias
+from opebot.util.ext import check_tag
 
 def check_match(query: str) -> tuple[str, float] | tuple[None, None]:
     best_match, score = rapidfuzz.process.extractOne(query, 
@@ -48,3 +49,12 @@ def remove_doomed_urls():
         json.dump(cache, w, indent=4)    
     with open(file_path_toRemove, 'w') as w:
         data['to_remove'] = []
+
+def get_songs_with_tag(mtag: str, _len: bool = False):
+    with open(file_path_cache, 'r') as r:
+        cache = json.load(r)
+    songs = []
+    for url, attributes in cache.items():
+        if check_tag(attributes, mtag):
+            songs.append(url)
+    return len(songs) if _len else songs
