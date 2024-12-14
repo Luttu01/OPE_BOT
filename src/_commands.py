@@ -86,6 +86,7 @@ async def join(ctx: Context):
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
+    print(20)
     if not validate(ctx):
         await ctx.send(embed=embed_msg_something_went_wrong())
         return
@@ -117,6 +118,7 @@ async def play(ctx: Context, *_query, **flags):
                 query = get_url_from_alias(query_lower)
             elif query in get_aliases():
                 query = get_url_from_alias(query)
+            print(21)
             player = await get_player(query)
             if not await validate_player(ctx, player):
                 return

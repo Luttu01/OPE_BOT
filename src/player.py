@@ -18,7 +18,8 @@ class Player(discord.PCMVolumeTransformer):
         self.volume   = volume
 
     @classmethod
-    async def from_url(cls, url, *, spotify_url: str = None):
+    async def from_url(cls, url: str, query: str, *, spotify_url: str = None):
+        print(1)
         cache = cls.check_url_in_cache(url)
         if cache:
             filename, title, volume, duration = cache
@@ -49,10 +50,11 @@ class Player(discord.PCMVolumeTransformer):
                     os.remove(filename)
                 return Error.DURATION_ERROR
             if spotify_url:
-                await cls.update_json_cache(spotify_url, filename, title, duration)
+                await cls.update_json_cache(spotify_url, filename, title, duration, query)
                 return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration)
             else:
-                await cls.update_json_cache(url, filename, title, duration)
+                print(2)
+                await cls.update_json_cache(url, filename, title, duration, query)
                 return cls(discord.FFmpegPCMAudio(filename), title=title, url=url, duration=duration)
 
     @staticmethod
@@ -71,21 +73,23 @@ class Player(discord.PCMVolumeTransformer):
         return None
     
     @staticmethod
-    async def update_json_cache(url, path, title, duration):
+    async def update_json_cache(url, path, title, duration, query):
+        print(3)
         with open(f'{file_path_cache}', 'r') as f:
             cache = json.load(f)
 
-        def _new_cache_entry(path, title, last_accessed, duration):
+        def _new_cache_entry(path, title, last_accessed, duration, query):
             return {
                 'path': path,
                 'title': title,
                 'last_accessed': last_accessed,
                 'weight': 1,
                 'volume': 0.5,
-                'duration': duration
+                'duration': duration,
+                'query': query
             }
 
-        cache[url] = _new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration)
-        print(_new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration))
+        cache[url] = _new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query)
+        print(_new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query))
         with open(rf'{file_path_cache}', 'w') as f:
             json.dump(cache, f, indent=4)

@@ -6,7 +6,10 @@ from opebot.util.res import get_cached_urls
 from opebot.src.botmanager import BotManager
 from opebot.src.player import Player
 
-async def get_player(url: str):
+async def get_player(_query: str):
+    print(query)
+    query = _query
+    url = _query
     parsed_url = urlparse(url)
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
@@ -15,7 +18,7 @@ async def get_player(url: str):
             try:
                 print(BotManager.sp.track(base_url))
                 url = get_youtube_link(url)
-                player = await Player.from_url(url, spotify_url=base_url)
+                player = await Player.from_url(url, query, spotify_url=base_url)
             except Exception as e:
                 print(e)
                 return None
@@ -27,11 +30,11 @@ async def get_player(url: str):
             new_query = f"v={query_params['v'][0]}"
             cleaned_url = urlunparse(parsed_url._replace(query=new_query))
             print(cleaned_url)
-            player = await Player.from_url(cleaned_url)
+            player = await Player.from_url(cleaned_url, query)
         else:
-            player = await Player.from_url(url)
+            player = await Player.from_url(url, query)
     else:
-        player = await Player.from_url(url)
+        player = await Player.from_url(url, query)
 
     return player
 
