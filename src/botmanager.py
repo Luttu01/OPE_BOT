@@ -6,7 +6,7 @@ from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials as scc
 from opebot.util.init import init_ytdl_options, init_ffmpeg
 
-class BotManager():
+class BotManager:
     ytdl = yt_dlp.YoutubeDL(init_ytdl_options())
     ffmpeg_opts = init_ffmpeg()
     sp = Spotify(auth_manager=scc(client_id=os.getenv('SPOTIFY_CLIENT_ID'), 

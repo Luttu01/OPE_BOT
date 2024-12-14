@@ -2,7 +2,7 @@ import threading
 
 from opebot.src.player import Player
 
-class SongManager():
+class SongManager:
     queue: list[Player]  = []
     current_player: Player = None
     radio_mode: bool = False
