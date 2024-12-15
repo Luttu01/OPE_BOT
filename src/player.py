@@ -19,7 +19,6 @@ class Player(discord.PCMVolumeTransformer):
 
     @classmethod
     async def from_url(cls, url: str, query: str, *, spotify_url: str = None):
-        print(1)
         cache = cls.check_url_in_cache(url)
         if cache:
             filename, title, volume, duration = cache

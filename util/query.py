@@ -7,7 +7,6 @@ from opebot.src.botmanager import BotManager
 from opebot.src.player import Player
 
 async def get_player(_query: str):
-    print(query)
     query = _query
     url = _query
     parsed_url = urlparse(url)
@@ -29,7 +28,6 @@ async def get_player(_query: str):
         if 'v' in query_params:
             new_query = f"v={query_params['v'][0]}"
             cleaned_url = urlunparse(parsed_url._replace(query=new_query))
-            print(cleaned_url)
             player = await Player.from_url(cleaned_url, query)
         else:
             player = await Player.from_url(url, query)
