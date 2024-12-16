@@ -1,5 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
+
 from discord.ext import commands
-from discord.ext.commands import Context, CheckFailure
+from discord.ext.commands import CheckFailure
 
 def in_same_voice_channel():
     def predicate(ctx: Context):

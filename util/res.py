@@ -32,13 +32,17 @@ def get_alias_from_url(url):
         aliases = json.load(read_file)
         return aliases[url]
     
-def get_query_from_title(title: str) -> str | None:
-    """Get corresponding url from title"""
+def get_query_from_title(pot_match: str) -> str | None:
+    """Get corresponding url from title/query"""
+    print(2)
     with open(f'{file_path_cache}', 'r') as read_file:
         cache = json.load(read_file)
         for url in cache:
-            if cache[url]['title'] == title:
+            if cache[url]['title'] == pot_match:
                 return url
+            elif "query" in cache[url]:
+                if cache[url]["query"] == pot_match:
+                    return url
         return None
     
 def get_titles():
@@ -77,3 +81,12 @@ def get_current_player_duration():
 
 def get_duration():
     return SongManager.song_curr_duration
+
+def get_queries():
+    with open(f'{file_path_cache}', 'r') as read_file:
+        cache = json.load(read_file)
+        queries = []
+        for url in cache:
+            if 'query' in cache[url]:
+                queries.append(cache[url]['query'])
+        return queries

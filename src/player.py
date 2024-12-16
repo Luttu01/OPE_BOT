@@ -7,6 +7,7 @@ import os
 from opebot.src.botmanager import BotManager
 from opebot.config.paths import file_path_cache, folder_path_cache
 from opebot.src.error import Error
+from opebot.util.validate import is_url
 
 class Player(discord.PCMVolumeTransformer):
     def __init__(self, original, url, title, duration, volume = 0.5):
@@ -52,7 +53,6 @@ class Player(discord.PCMVolumeTransformer):
                 await cls.update_json_cache(spotify_url, filename, title, duration, query)
                 return cls(discord.FFmpegPCMAudio(filename), title=title, url=spotify_url, duration=duration)
             else:
-                print(2)
                 await cls.update_json_cache(url, filename, title, duration, query)
                 return cls(discord.FFmpegPCMAudio(filename), title=title, url=url, duration=duration)
 
@@ -73,20 +73,21 @@ class Player(discord.PCMVolumeTransformer):
     
     @staticmethod
     async def update_json_cache(url, path, title, duration, query):
-        print(3)
         with open(f'{file_path_cache}', 'r') as f:
             cache = json.load(f)
 
         def _new_cache_entry(path, title, last_accessed, duration, query):
-            return {
+            entry = {
                 'path': path,
                 'title': title,
                 'last_accessed': last_accessed,
                 'weight': 1,
                 'volume': 0.5,
-                'duration': duration,
-                'query': query
+                'duration': duration
             }
+            if not is_url(query):
+                entry['query'] = query
+            return entry
 
         cache[url] = _new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query)
         print(_new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query))

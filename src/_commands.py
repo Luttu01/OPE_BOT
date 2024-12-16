@@ -1,9 +1,12 @@
-import logging
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
+
 import asyncio
 import datetime
 
 from random import shuffle as _shuffle
-from discord.ext.commands import Context
 from discord.ext import commands
 from discord.ext import tasks
 
@@ -62,7 +65,7 @@ async def on_step(ctx: Context):
                     await ctx.send(embed=embed_msg_error("Skipping faulty song."))
                     return
                 await _play(ctx, next_song)
-            elif SongManager.radio_mode:
+            elif SongManager.radio_mode and not SongManager.processing_player:
                 if SongManager.radio_station:
                     await play_random_song(ctx, SongManager.radio_station)
                 else:
@@ -86,67 +89,66 @@ async def join(ctx: Context):
                    "Use the tag with -random command to play one of those songs\n"
                    "-random your_tag"))
 async def play(ctx: Context, *_query, **flags):
-    if not validate(ctx):
-        await ctx.send(embed=embed_msg_something_went_wrong())
-        return
+    try:
+        if not validate(ctx):
+            await ctx.send(embed=embed_msg_something_went_wrong())
+            return
+        
+        SongManager.processing_player = True
 
-    if not ctx.voice_client:
-        await join(ctx)
+        if not ctx.voice_client:
+            await join(ctx)
 
-    if "random" not in flags:
-        SongManager.last_player = None
-        SongManager.last_request = ""
+        if "random" not in flags:
+            SongManager.last_player = None
+            SongManager.last_request = ""
 
-    query, mtag = extract_query_mtag(_query)
-    query_lower = query.lower()
+        query, mtag = extract_query_mtag(_query)
+        print(query)
+        query_lower = query.lower()
 
-    async with ctx.typing():
-        if is_playlist(query):
-            return await ctx.send(embed=embed_msg_error("Playlists and albums are not supported."))
-        if not is_url(query) and not is_alias(query) and "search" not in flags:
-            pot_match, score = check_match(query_lower)
-            if pot_match:
-                SongManager.last_request = query
-                query = pot_match
-                if is_url(pot_match):
-                    pot_match = get_title_from_url(pot_match)
-                await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}%"))
-        try:
-            # TODO: clean this up
-            if query_lower in get_aliases(): 
-                query = get_url_from_alias(query_lower)
-            elif query in get_aliases():
-                query = get_url_from_alias(query)
-            player = await get_player(query)
-            if not await validate_player(ctx, player):
-                return
-            if "random" not in flags and "search" not in flags:
-                SongManager.last_player = player
-            if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-                SongManager.add_to_q(player)
-                await ctx.send(embed=embed_msg(f"{player.title}\n"
-                                               f"position {len(SongManager.queue)}",
-                                               "Added to queue."))
-            else:
-                await _play(ctx, player)
-        except:
-            #TODO: log errors
-            pass
+        async with ctx.typing():
+            if is_playlist(query):
+                return await ctx.send(embed=embed_msg_error("Playlists and albums are not supported."))
+            if not is_url(query) and not is_alias(query) and "search" not in flags:
+                pot_match, score = check_match(query_lower)
+                if pot_match:
+                    SongManager.last_request = query
+                    query = pot_match
+                    if is_url(pot_match):
+                        pot_match = get_title_from_url(pot_match)
+                    await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}%"))
+            try:
+                for alias in (query, query_lower):
+                    if alias in get_aliases():
+                        query = get_url_from_alias(alias)
+                        break
+                player = await get_player(query)
+                if not await validate_player(ctx, player):
+                    return
+                if {"random", "search"}.isdisjoint(flags):
+                    SongManager.last_player = player
+                if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+                    SongManager.add_to_q(player)
+                    await ctx.send(embed=embed_msg(f"{player.title}\n"
+                                                f"position {len(SongManager.queue)}",
+                                                "Added to queue."))
+                else:
+                    await _play(ctx, player)
+            except:
+                #TODO: log errors
+                pass
 
-        #TODO: flags
-
-        if mtag:
-            if not is_mtag(mtag):
-                return await ctx.send(embed=embed_msg_error("Invalid tag."))
-            existing_tag = add_tag(player.url, mtag)
-            if existing_tag:
-                await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
-            else:
-                await ctx.send(embed=embed_msg(f"Successfully added the tag: {mtag!r}"))
-
-        # if 't' not in flags:
-        #     update_url_counter(url, player.title)
-        #     update_request_counter(ctx.author.name)
+            if mtag:
+                if not is_mtag(mtag):
+                    return await ctx.send(embed=embed_msg_error("Invalid tag."))
+                existing_tag = add_tag(player.url, mtag)
+                if existing_tag:
+                    await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
+                else:
+                    await ctx.send(embed=embed_msg(f"Successfully added the tag: {mtag!r}"))
+    finally:
+        SongManager.processing_player = False
 
 @bot.command(name="skip", 
              aliases=["s", "sk", "ski", "nästa"], 

@@ -1,4 +1,7 @@
-from discord.ext.commands import Context
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
 from opebot.src.player import Player
 from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager

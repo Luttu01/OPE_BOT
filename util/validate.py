@@ -1,11 +1,14 @@
+from __future__ import annotations
 import datetime
 from opebot.util.res import get_aliases, get_tags, get_alias_urls, get_alias_from_url
 from opebot.util.message import embed_msg_error
 from opebot.src.error import Error
 from typing import Union
 from discord.ext.commands import Context
-from opebot.src.player import Player
 from opebot.src.botmanager import BotManager
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from opebot.src.player import Player
 
 def validate(arg):
     try:

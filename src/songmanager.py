@@ -1,6 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 import threading
 
-from opebot.src.player import Player
+if TYPE_CHECKING:
+    from opebot.src.player import Player
 
 class SongManager:
     queue: list[Player]  = []
@@ -12,6 +16,7 @@ class SongManager:
     song_duration: int = 0
     song_curr_duration: int = 0
     song_is_paued: bool = False
+    processing_player: bool = False
 
     __lock = threading.Lock()
 

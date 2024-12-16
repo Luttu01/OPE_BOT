@@ -15,14 +15,13 @@ async def get_player(_query: str):
     if "spotify" in url:
         if base_url not in get_cached_urls():
             try:
-                print(BotManager.sp.track(base_url))
                 url = get_youtube_link(url)
                 player = await Player.from_url(url, query, spotify_url=base_url)
             except Exception as e:
                 print(e)
                 return None
         else:
-            player = await Player.from_url(base_url)
+            player = await Player.from_url(base_url, query)
     elif "youtube" in url or "youtu.be" in url:
         query_params = parse_qs(parsed_url.query)
         if 'v' in query_params:
