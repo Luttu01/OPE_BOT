@@ -1,11 +1,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from discord.ext.commands import Context
+
 from opebot.src.player import Player
 from opebot.src.songmanager import SongManager
 from opebot.src.botmanager import BotManager
 from opebot.util.message import embed_msg_song
+
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
 
 async def _play(ctx: Context, player: Player):
     ctx.voice_client.play(player)

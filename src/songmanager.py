@@ -36,5 +36,8 @@ class SongManager:
     @classmethod
     def increment_duration(cls):
         cls.song_curr_duration += 1
-
     
+    @classmethod
+    def reset_history(cls):
+        cls.last_player = None
+        cls.last_request = ""

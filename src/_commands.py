@@ -1,7 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from discord.ext.commands import Context
 
 import asyncio
 import datetime
@@ -29,6 +27,9 @@ from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls,
                              add_tag, to_remove, create_tag,
                              extract_n_mtag, extract_query_mtag)
 
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
+
 @bot.event
 async def on_ready():
     # TODO:
@@ -47,14 +48,16 @@ async def on_command_error(ctx: Context, error):
     if isinstance(error, commands.CheckFailure):
         await ctx.send(embed=embed_msg_error(str(error)))
     elif isinstance(error, commands.CommandNotFound):
-        await ctx.send(embed=embed_msg_error(f"Command not found: {ctx.message.content}"))
-        print(f"Command not found: {ctx.message.content}")
+        msg = f"Command not found: {ctx.message.content}"
+        if ctx.message.content == "-silence":
+            msg += "\n Try -radio instead"
+        await ctx.send(embed=embed_msg_error(msg))
 
 @tasks.loop(seconds=1)
 async def on_step(ctx: Context):
     if ctx.voice_client:
         if len(ctx.voice_client.channel.members) == 1:
-            await leave()
+            await leave(ctx)
             return
         if ctx.voice_client.is_playing():
             SongManager.increment_duration()
@@ -67,9 +70,9 @@ async def on_step(ctx: Context):
                 await _play(ctx, next_song)
             elif SongManager.radio_mode and not SongManager.processing_player:
                 if SongManager.radio_station:
-                    await play_random_song(ctx, SongManager.radio_station)
+                    await play_random_song(ctx, SongManager.radio_station, random=True)
                 else:
-                    await play_random_song(ctx)
+                    await play_random_song(ctx, random=True)
 
 @bot.command(name='join', help='Bot joins your voice channel.')
 async def join(ctx: Context):
@@ -87,7 +90,7 @@ async def join(ctx: Context):
                    "You can add a tag (presuming it exists, otherwise you can create one using the -tag command) to your query to group it with other songs of the same tag\n"
                    "-play <your_query> <your_tag>\n"
                    "Use the tag with -random command to play one of those songs\n"
-                   "-random your_tag"))
+                   "-random <your_tag>"))
 async def play(ctx: Context, *_query, **flags):
     try:
         if not validate(ctx):
@@ -100,8 +103,7 @@ async def play(ctx: Context, *_query, **flags):
             await join(ctx)
 
         if "random" not in flags:
-            SongManager.last_player = None
-            SongManager.last_request = ""
+            SongManager.reset_history()
 
         query, mtag = extract_query_mtag(_query)
         print(query)
@@ -117,7 +119,9 @@ async def play(ctx: Context, *_query, **flags):
                     query = pot_match
                     if is_url(pot_match):
                         pot_match = get_title_from_url(pot_match)
-                    await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}%"))
+                    if score < 100:
+                        await ctx.send(embed=embed_msg(f"Your query matched {pot_match!r} by {score:.2f}%\n"
+                                                        "do -search if this is wrong."))
             try:
                 for alias in (query, query_lower):
                     if alias in get_aliases():
@@ -131,8 +135,8 @@ async def play(ctx: Context, *_query, **flags):
                 if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
                     SongManager.add_to_q(player)
                     await ctx.send(embed=embed_msg(f"{player.title}\n"
-                                                f"position {len(SongManager.queue)}",
-                                                "Added to queue."))
+                                                   f"position {len(SongManager.queue)}",
+                                                    "Added to queue."))
                 else:
                     await _play(ctx, player)
             except:
@@ -205,7 +209,7 @@ async def remove(ctx: Context, position: int = 1):
 
 @bot.command(name='queue', 
              aliases=['q', "qu", "que", "queu", "kö"], 
-             help='Display queue')
+             help='Display queue.')
 @in_same_voice_channel()
 async def show_queue(ctx: Context):
     queue = SongManager.queue
@@ -220,7 +224,7 @@ async def show_queue(ctx: Context):
              aliases=["m", "mo", "mov", "flytta"], 
              help=('Move a song in the queue to a new position\n'
                    '-move 7 2\n'
-                   "moves song in position 7 to 2\n"
+                   "moves song from position 7 to 2\n"
                    "or leave out target position and it defaults to position 1\n"
                    "-move 7"))
 @in_same_voice_channel()
@@ -233,15 +237,16 @@ async def move(ctx: Context, from_position: int, to_position: int = 1):
     song = queue.pop(from_index)
     queue.insert(to_index, song)
     SongManager.queue = queue
-    await ctx.send(embed=embed_msg(f"Moved **{song.title}** to position {to_position}."))
+    await ctx.send(embed=embed_msg(f"{song.title!r}\n To position {to_position}.",
+                                    "Moved song."))
 
 @bot.command(name="alias",
              help=(
                  "Sets given URL to given alias.\n"
                  "Example:\n"
-                 "-alias url your_alias\n"
+                 "-alias <url> <your_alias>\n"
                  "You can then use this alias to query that song\n"
-                 "-play your_alias"))
+                 "-play <your_alias>"))
 @in_same_voice_channel()
 async def alias(ctx: Context, url: str, *_new_alias: str):
     new_alias = ' '.join(_new_alias).lower()
@@ -253,7 +258,7 @@ async def alias(ctx: Context, url: str, *_new_alias: str):
 
 @bot.command(name="rmalias", 
              help=("remove given alias"
-                   "-rmalias insert_alias"))
+                   "-rmalias <your_alias>"))
 @in_same_voice_channel()
 async def rmalias(ctx: Context, alias: str):
     if not is_alias(alias):
@@ -261,9 +266,10 @@ async def rmalias(ctx: Context, alias: str):
         return
     success = remove_alias(alias)
     if success:
-        await ctx.send(embed=embed_msg(f"Successfully removed alias: {alias}"))
+        await ctx.send(embed=embed_msg(f"{alias}",
+                                       "Removed alias."))
 
-@bot.command(name="aliases", help="Show aliases")
+@bot.command(name="aliases", help="Show aliases.")
 @in_same_voice_channel()
 async def aliases(ctx: Context):
     _aliases = get_aliases()
@@ -278,14 +284,14 @@ async def aliases(ctx: Context):
                    "Or you can queue an X amount of songs\n"
                    "-random 5\n"
                    "You can also specify a certain tag of songs\n"
-                   "-random 5 your_tag"))
-async def play_random_song(ctx: Context, *flags):
+                   "-random 5 <your_tag>"))
+async def play_random_song(ctx: Context, *flags, **kwargs):
     if len(flags) > 2:
         return await ctx.send(embed=embed_msg_error("Too many flags\n"
                                                     "For more help and details do:\n"
                                                     "-help random"))
     n, mtag = extract_n_mtag(flags)
-    if await validate_random(ctx, n, mtag):
+    if await validate_random(ctx, n, mtag, kwargs):
         random_urls = get_random_cached_urls(n, mtag)
         if random_urls:
             for url in random_urls:
@@ -293,12 +299,13 @@ async def play_random_song(ctx: Context, *flags):
                 await asyncio.sleep(.5) # Deload at large workload of requests
         else:
             return await ctx.send(embed=embed_msg_error("No songs with that tag."))
-    else:
-        return await ctx.send(embed=embed_msg_something_went_wrong())
     
 @bot.command(name="radio", 
              help=("Toggle radio mode.\n"
-                    "If no songs are queued, play a random song."))
+                   "If no songs are queued, play a random song."
+                   "You can set a radio station to only play random songs with given tag."
+                   "-radio <tag>"
+                   "do -tags for available tags."))
 @in_same_voice_channel()
 async def radio(ctx: Context, station: str = ""):
     if station:
@@ -306,7 +313,7 @@ async def radio(ctx: Context, station: str = ""):
             SongManager.radio_station = station
         else:
             return await ctx.send(embed=embed_msg_error("Not a valid radio station.\n"
-                                                        "do -tags for valid stations"))
+                                                        "do -tags for valid options"))
     _radio = toggle_radio()
     if _radio:
         await ctx.send(embed=embed_msg("Radio has been turned on."))
@@ -328,9 +335,9 @@ async def trash(ctx: Context):
              help=("Create a new music tag\n"
                     "-tag your_tag\n"
                     "then add it to a song in -play command\n"
-                    "-play your_query <your_tag>\n"
+                    "-play <your_query> <your_tag>\n"
                     "You can then use this tag in -random command to play songs with that tag\n"
-                    "-random your_tag"))
+                    "-random <your_tag>"))
 @in_same_voice_channel()
 async def tag(ctx: Context, new_tag: str):
     if new_tag in get_tags():

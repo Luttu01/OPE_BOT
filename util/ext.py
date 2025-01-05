@@ -1,10 +1,12 @@
 import json
 import random
+import datetime
 
 from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
 from opebot.util.res import get_url_from_alias, get_cached_urls
 from opebot.src.error import Error
 from opebot.util.res import get_tags
+from opebot.src.botmanager import BotManager
 
 def add_alias(url, new_name):
     try:
@@ -48,14 +50,22 @@ def get_random_cached_urls(n: int, mtag: str):
             cached_urls = urls
         else:
             return None
+        
     random.shuffle(cached_urls)
     weights = [cache[url]['weight'] for url in cached_urls]
     selection_weights = [1 / (1 + weight) for weight in weights]
     total_weight = sum(selection_weights)
     normalized_weights = [w / total_weight for w in selection_weights]
     random_urls = random.choices(cached_urls, weights=normalized_weights, k=n)
+
+    christmas_songs = []
     for url in random_urls:
         cache[url]['weight'] += 1
+        if check_tag(cache[url], "jul"):
+            christmas_songs.append(url)
+    if datetime.datetime.now().month != BotManager.DECEMBER:
+        random_urls = [url for url in random_urls if url not in christmas_songs]
+    
     with open(file_path_cache, 'w') as w:
         json.dump(cache, w, indent=4)
     return list(set(random_urls))
