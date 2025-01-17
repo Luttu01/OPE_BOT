@@ -77,8 +77,10 @@ async def on_step(ctx: Context):
 @bot.command(name='join', help='Bot joins your voice channel.')
 async def join(ctx: Context):
     if not ctx.message.author.voice:
-        await ctx.send(embed=embed_msg("You are not connected to a voice channel."))
+        await ctx.send(embed=embed_msg_error("You are not connected to a voice channel."))
         return
+    if ctx.voice_client:
+        await ctx.send(embed=embed_msg_error("Bot already connected to a voice client."))
     channel = ctx.message.author.voice.channel
     await channel.connect()
     if not on_step.is_running():
@@ -130,13 +132,13 @@ async def play(ctx: Context, *_query, **flags):
                 player = await get_player(query)
                 if not await validate_player(ctx, player):
                     return
-                if {"random", "search"}.isdisjoint(flags):
+                if "random" not in flags:
                     SongManager.last_player = player
                 if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
                     SongManager.add_to_q(player)
                     await ctx.send(embed=embed_msg(f"{player.title}\n"
                                                    f"position {len(SongManager.queue)}",
-                                                    "Added to queue."))
+                                                    "Added to queue"))
                 else:
                     await _play(ctx, player)
             except:
@@ -306,7 +308,6 @@ async def play_random_song(ctx: Context, *flags, **kwargs):
                    "You can set a radio station to only play random songs with given tag."
                    "-radio <tag>"
                    "do -tags for available tags."))
-@in_same_voice_channel()
 async def radio(ctx: Context, station: str = ""):
     if station:
         if is_mtag(station):
@@ -316,6 +317,8 @@ async def radio(ctx: Context, station: str = ""):
                                                         "do -tags for valid options"))
     _radio = toggle_radio()
     if _radio:
+        if not ctx.voice_client:
+            await join(ctx)
         await ctx.send(embed=embed_msg("Radio has been turned on."))
     else:
         await ctx.send(embed=embed_msg("Radio has been turned off"))
@@ -371,12 +374,11 @@ async def duration(ctx: Context):
 async def search(ctx: Context):
     if SongManager.last_request:
         await play(ctx, SongManager.last_request, search=True)
-        SongManager.last_request = ""
         if SongManager.queue:
            SongManager.queue.remove(SongManager.last_player)
         else:
             await skip(ctx)
-        SongManager.last_player = None
+        SongManager.reset_history()
     else:
         return await ctx.send(embed=embed_msg_error("No query to search."))
     
