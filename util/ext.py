@@ -2,6 +2,8 @@ import json
 import random
 import datetime
 
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
 from ..config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
 from ..util.res import get_url_from_alias, get_cached_urls
 from ..src.error import Error
@@ -160,3 +162,18 @@ def extract_query_mtag(_query: tuple[str]):
         mtag = None
         query = ' '.join(_query)
     return query, mtag
+
+def clean_url(url: str) -> str:
+    parsed = urlparse(url)
+
+    if "spotify" in parsed.netloc:
+        cleaned = parsed._replace(query="")
+    elif "youtube" in parsed.netloc:
+        qs = parse_qsl(parsed.query)
+        qs_clean = [(k, v) for k, v in qs if k == "v"]
+        new_query = urlencode(qs_clean)
+        cleaned = parsed._replace(query=new_query)
+    else:
+        cleaned = parsed._replace(query="")
+    
+    return urlunparse(cleaned)

@@ -25,7 +25,7 @@ from ..util.res import (get_url_from_alias, get_aliases, get_title_from_url,
                              get_duration)
 from ..util.ext import (add_alias, remove_alias, get_random_cached_urls, 
                              add_tag, to_remove, create_tag,
-                             extract_n_mtag, extract_query_mtag)
+                             extract_n_mtag, extract_query_mtag, clean_url)
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
@@ -337,7 +337,7 @@ async def trash(ctx: Context):
         await ctx.send(embed=embed_msg_something_went_wrong())
 
 @bot.command(name="newtag", 
-             help=("Create a new music tag\n"
+             help=("Create a new music tag\n\n"
                     "-tag your_tag\n"
                     "then add it to a song in -play command\n"
                     "-play <your_query> <your_tag>\n"
@@ -401,3 +401,16 @@ async def tags(ctx: Context, mtag: str = None):
             return await ctx.send(embed=embed_msg_error("Not an existing tag."))
     quant = get_songs_with_tag(mtag, True)
     return await ctx.send(embed=embed_msg(f"There are {quant} songs with that tag."))
+
+@bot.command(name="tag", help="add given tag to given url")
+@in_same_voice_channel()
+async def tag(ctx: Context, url: str, mtag: str):
+    if not is_mtag(mtag):
+        return await ctx.send(embed=embed_msg_error(f"the tag: {mtag!r} does not exist."))
+    if not is_url(url):
+        return await ctx.send(embed=embed_msg_error("You can only tag valid urls."))
+    existing_tag = add_tag(clean_url(url), mtag)
+    if existing_tag:
+        return await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag}"))
+    else:
+        return await ctx.send(embed=embed_msg(f"Successfully tagged your song with: {mtag!r}"))
