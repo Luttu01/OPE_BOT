@@ -8,22 +8,22 @@ from random import shuffle as _shuffle
 from discord.ext import commands
 from discord.ext import tasks
 
-from opebot.src import bot
-from opebot.src.songmanager import SongManager
-from opebot.src.botmanager import BotManager
-from opebot.src.decorator import in_same_voice_channel
-from opebot.util.query import get_player
-from opebot.util.cache import (check_match, reset_weighting, remove_doomed_urls,
+from ..src import bot
+from ..src.songmanager import SongManager
+from ..src.botmanager import BotManager
+from ..src.decorator import in_same_voice_channel
+from ..util.query import get_player
+from ..util.cache import (check_match, reset_weighting, remove_doomed_urls,
                                get_songs_with_tag)
-from opebot.util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
-from opebot.util.playback import _play, _now_playing, toggle_radio
-from opebot.util.validate import (validate, is_url, is_playlist, 
+from ..util.message import embed_msg, embed_msg_something_went_wrong, embed_msg_error
+from ..util.playback import _play, _now_playing, toggle_radio
+from ..util.validate import (validate, is_url, is_playlist, 
                                   is_alias, is_mtag, validate_move, 
                                   validate_new_alias, validate_random, validate_player)
-from opebot.util.res import (get_url_from_alias, get_aliases, get_title_from_url, 
+from ..util.res import (get_url_from_alias, get_aliases, get_title_from_url, 
                              get_current_player_url, get_tags, get_current_player_duration,
                              get_duration)
-from opebot.util.ext import (add_alias, remove_alias, get_random_cached_urls, 
+from ..util.ext import (add_alias, remove_alias, get_random_cached_urls, 
                              add_tag, to_remove, create_tag,
                              extract_n_mtag, extract_query_mtag)
 

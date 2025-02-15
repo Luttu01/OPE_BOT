@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import threading
 
 if TYPE_CHECKING:
-    from opebot.src.player import Player
+    from ..src.player import Player
 
 class SongManager:
     queue: list[Player]  = []

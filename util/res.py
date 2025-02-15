@@ -1,7 +1,7 @@
 import json
 
-from opebot.config.paths import file_path_aliases, file_path_cache, file_path_tags
-from opebot.src.songmanager import SongManager
+from ..config.paths import file_path_aliases, file_path_cache, file_path_tags
+from ..src.songmanager import SongManager
 
 def get_aliases():
     """Returns all aliases"""

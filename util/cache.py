@@ -2,10 +2,10 @@ import rapidfuzz
 import json
 import os
 
-from opebot.config.paths import file_path_cache, file_path_toRemove, folder_path_cache
-from opebot.util.res import get_aliases, get_query_from_title, get_titles, get_queries
-from opebot.util.validate import is_alias
-from opebot.util.ext import check_tag
+from ..config.paths import file_path_cache, file_path_toRemove, folder_path_cache
+from ..util.res import get_aliases, get_query_from_title, get_titles, get_queries
+from ..util.validate import is_alias
+from ..util.ext import check_tag
 
 def check_match(query: str) -> tuple[str, float] | tuple[None, None]:
     to_check = get_aliases() + [title.lower() for title in get_titles()] + [q.lower() for q in get_queries()]

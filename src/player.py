@@ -4,10 +4,10 @@ import json
 import datetime
 import os
 
-from opebot.src.botmanager import BotManager
-from opebot.config.paths import file_path_cache, folder_path_cache
-from opebot.src.error import Error
-from opebot.util.validate import is_url
+from ..src.botmanager import BotManager
+from ..config.paths import file_path_cache, folder_path_cache
+from ..src.error import Error
+from ..util.validate import is_url
 
 class Player(discord.PCMVolumeTransformer):
     def __init__(self, original, url, title, duration, volume = 0.5):

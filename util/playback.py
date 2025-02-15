@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from opebot.src.player import Player
-from opebot.src.songmanager import SongManager
-from opebot.src.botmanager import BotManager
-from opebot.util.message import embed_msg_song
+from ..src.player import Player
+from ..src.songmanager import SongManager
+from ..src.botmanager import BotManager
+from ..util.message import embed_msg_song
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context

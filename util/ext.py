@@ -2,11 +2,11 @@ import json
 import random
 import datetime
 
-from opebot.config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
-from opebot.util.res import get_url_from_alias, get_cached_urls
-from opebot.src.error import Error
-from opebot.util.res import get_tags
-from opebot.src.botmanager import BotManager
+from ..config.paths import file_path_aliases, file_path_cache, file_path_urlCounter, file_path_toRemove, file_path_tags
+from ..util.res import get_url_from_alias, get_cached_urls
+from ..src.error import Error
+from ..util.res import get_tags
+from ..src.botmanager import BotManager
 
 def add_alias(url, new_name):
     try:

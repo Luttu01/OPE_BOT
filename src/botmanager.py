@@ -4,7 +4,7 @@ import threading
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials as scc
-from opebot.util.init import init_ytdl_options, init_ffmpeg
+from ..util.init import init_ytdl_options, init_ffmpeg
 
 class BotManager:
     ytdl = yt_dlp.YoutubeDL(init_ytdl_options())

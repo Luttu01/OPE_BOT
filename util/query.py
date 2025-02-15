@@ -2,9 +2,10 @@ import logging
 import os
 import googleapiclient.discovery as gdisc
 from urllib.parse import urlparse, parse_qs, urlunparse
-from opebot.util.res import get_cached_urls
-from opebot.src.botmanager import BotManager
-from opebot.src.player import Player
+
+from ..util.res import get_cached_urls
+from ..src.botmanager import BotManager
+from ..src.player import Player
 
 async def get_player(_query: str):
     query = _query
