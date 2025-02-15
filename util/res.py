@@ -34,7 +34,6 @@ def get_alias_from_url(url):
     
 def get_query_from_title(pot_match: str) -> str | None:
     """Get corresponding url from title/query"""
-    print(2)
     with open(f'{file_path_cache}', 'r') as read_file:
         cache = json.load(read_file)
         for url in cache:

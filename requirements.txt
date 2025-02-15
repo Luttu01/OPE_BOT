@@ -1,0 +1,6 @@
+discord.py==2.4.0
+google_api_python_client==2.160.0
+python-dotenv==1.0.1
+rapidfuzz==3.12.1
+spotipy==2.25.0
+yt_dlp==2025.1.26

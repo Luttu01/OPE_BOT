@@ -39,6 +39,9 @@ def remove_doomed_urls():
     except json.JSONDecodeError:
         data = {}
         remove_list = []
+
+    if not remove_list:
+        return
     
     with open(file_path_cache, 'r') as r:
         cache = json.load(r)

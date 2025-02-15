@@ -45,6 +45,7 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx: Context, error):
+    print(f"Command error triggered: {error}")
     if isinstance(error, commands.CheckFailure):
         await ctx.send(embed=embed_msg_error(str(error)))
     elif isinstance(error, commands.CommandNotFound):
@@ -152,7 +153,7 @@ async def play(ctx: Context, *_query, **flags):
                 if existing_tag:
                     await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
                 else:
-                    await ctx.send(embed=embed_msg(f"Successfully added the tag: {mtag!r}"))
+                    await ctx.send(embed=embed_msg(f"Successfully tagged your song with: {mtag!r}"))
     finally:
         SongManager.processing_player = False
 
@@ -181,6 +182,7 @@ async def leave(ctx: Context):
     voice_client = ctx.message.guild.voice_client
     if voice_client.is_connected():
         SongManager.queue.clear()
+        SongManager.radio_mode = False
         await voice_client.disconnect()
         on_step.stop()
 
@@ -334,7 +336,7 @@ async def trash(ctx: Context):
     else:
         await ctx.send(embed=embed_msg_something_went_wrong())
 
-@bot.command(name="tag", 
+@bot.command(name="newtag", 
              help=("Create a new music tag\n"
                     "-tag your_tag\n"
                     "then add it to a song in -play command\n"
@@ -342,7 +344,7 @@ async def trash(ctx: Context):
                     "You can then use this tag in -random command to play songs with that tag\n"
                     "-random <your_tag>"))
 @in_same_voice_channel()
-async def tag(ctx: Context, new_tag: str):
+async def new_tag(ctx: Context, new_tag: str):
     if new_tag in get_tags():
         await ctx.send(embed=embed_msg_error("That tag already exists"))
         return
