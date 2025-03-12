@@ -1,1 +1,1 @@
-### Outinen Potatis Esports alldeles egna Discord bot
+### Outinens Potatis Esports alldeles egna Discord bot
