@@ -90,6 +90,5 @@ class Player(discord.PCMVolumeTransformer):
             return entry
 
         cache[url] = _new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query)
-        print(_new_cache_entry(path, title, datetime.datetime.now().strftime("%Y-%m-%d"), duration, query))
         with open(rf'{file_path_cache}', 'w') as f:
             json.dump(cache, f, indent=4)

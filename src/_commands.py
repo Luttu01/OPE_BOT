@@ -338,9 +338,9 @@ async def trash(ctx: Context):
 
 @bot.command(name="newtag", 
              help=("Create a new music tag\n\n"
-                    "-tag your_tag\n"
-                    "then add it to a song in -play command\n"
-                    "-play <your_query> <your_tag>\n"
+                    "-newtag your_tag\n"
+                    "then add it to a song in -play or -tag command\n"
+                    "-play <query> <your_tag> or -tag <url> <your_tag>\n"
                     "You can then use this tag in -random command to play songs with that tag\n"
                     "-random <your_tag>"))
 @in_same_voice_channel()
