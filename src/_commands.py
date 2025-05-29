@@ -108,7 +108,7 @@ async def play(ctx: Context, *_query, **flags):
         if "random" not in flags:
             SongManager.reset_history()
 
-        query, mtag = extract_query_mtag(_query)
+        query = ' '.join(_query)
         print(query)
         query_lower = query.lower()
 
@@ -145,15 +145,6 @@ async def play(ctx: Context, *_query, **flags):
             except:
                 #TODO: log errors
                 pass
-
-            if mtag:
-                if not is_mtag(mtag):
-                    return await ctx.send(embed=embed_msg_error("Invalid tag."))
-                existing_tag = add_tag(player.url, mtag)
-                if existing_tag:
-                    await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag!r}"))
-                else:
-                    await ctx.send(embed=embed_msg(f"Successfully tagged your song with: {mtag!r}"))
     finally:
         SongManager.processing_player = False
 
