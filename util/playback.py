@@ -14,7 +14,10 @@ async def _play(ctx: Context, player: Player):
     SongManager.current_player = player
     SongManager.song_curr_duration = 0
     if BotManager.last_message:
-        await BotManager.last_message.delete()
+        try:
+            await BotManager.last_message.delete()
+        except:
+            pass # Message has been removed manually by someone else
     BotManager.last_message = await ctx.send(embed=embed_msg_song(player.title))
     
 def _now_playing() -> str:

@@ -156,11 +156,6 @@ async def skip(ctx: Context):
     if not ctx.voice_client or not ctx.voice_client.is_playing():
         await ctx.send(embed=embed_msg("No song is currently playing."))
         return
-    
-    # TODO: 
-    # if not check_allowed_to_skip(ctx.author.id, get_current_player_url()):
-    #     await ctx.send("You lack privilege to skip this song.")
-    #     return
 
     ctx.voice_client.stop()
     await ctx.send(embed=embed_msg(f"{_now_playing()}.", "Skipped song"))
@@ -351,7 +346,7 @@ async def new_tag(ctx: Context, new_tag: str):
 @in_same_voice_channel()
 async def duration(ctx: Context):
     if not ctx.voice_client.is_playing():
-        await ctx.send(embed=embed_msg_error("Nothing currently playing to display duration of."))
+        await ctx.send(embed=embed_msg_error("Nothing currently playing."))
         return
     if not get_current_player_duration():
         await ctx.send(embed=embed_msg_error("No duration to display for this song."))
