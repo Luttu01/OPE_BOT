@@ -89,11 +89,7 @@ async def join(ctx: Context):
 
 @bot.command(name='play', 
              aliases=["p", "pl", "pla", "spela"], 
-             help=("Plays given url or search\n"
-                   "You can add a tag (presuming it exists, otherwise you can create one using the -tag command) to your query to group it with other songs of the same tag\n"
-                   "-play <your_query> <your_tag>\n"
-                   "Use the tag with -random command to play one of those songs\n"
-                   "-random <your_tag>"))
+             help=("Plays given url or search"))
 async def play(ctx: Context, *_query, **flags):
     try:
         if not validate(ctx):
@@ -292,10 +288,10 @@ async def play_random_song(ctx: Context, *flags, **kwargs):
     
 @bot.command(name="radio", 
              help=("Toggle radio mode.\n"
-                   "If no songs are queued, play a random song."
-                   "You can set a radio station to only play random songs with given tag."
-                   "-radio <tag>"
-                   "do -tags for available tags."))
+                   "If no songs are queued, play a random song.\n"
+                   "You can set a radio station to only play random songs with given tag.\n"
+                   "-radio <tag>\n"
+                   "do -tags for available tags.\n"))
 async def radio(ctx: Context, station: str = ""):
     if station:
         if is_mtag(station):
@@ -307,6 +303,8 @@ async def radio(ctx: Context, station: str = ""):
     if _radio:
         if not ctx.voice_client:
             await join(ctx)
+        if SongManager.radio_station:
+            return await ctx.send(embed=embed_msg(f"Radio station has been set to {SongManager.radio_station}."))
         await ctx.send(embed=embed_msg("Radio has been turned on."))
     else:
         await ctx.send(embed=embed_msg("Radio has been turned off"))
