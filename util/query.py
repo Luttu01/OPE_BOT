@@ -4,6 +4,7 @@ import googleapiclient.discovery as gdisc
 from urllib.parse import urlparse, parse_qs, urlunparse
 
 from ..util.res import get_cached_urls
+from ..util.ext import clean_url
 from ..src.botmanager import BotManager
 from ..src.player import Player
 

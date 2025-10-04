@@ -168,7 +168,7 @@ def clean_url(url: str) -> str:
 
     if "spotify" in parsed.netloc:
         cleaned = parsed._replace(query="")
-    elif "youtube" in parsed.netloc:
+    elif "youtube" in parsed.netloc or "youtu.be" in parsed.netloc:
         qs = parse_qsl(parsed.query)
         qs_clean = [(k, v) for k, v in qs if k == "v"]
         new_query = urlencode(qs_clean)
