@@ -12,3 +12,4 @@ file_path_playRequestCounter = os.path.join(parent_dir, 'res', 'play_requests_co
 file_path_toRemove = os.path.join(parent_dir, 'res', 'to_remove.json')
 
 folder_path_cache = os.path.join(parent_dir, "cache")
+folder_path_logs  = os.path.join(parent_dir, "logs")
