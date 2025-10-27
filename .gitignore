@@ -5,3 +5,4 @@ cache/
 res/
 logs/
 test/
+tmp/

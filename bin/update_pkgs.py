@@ -32,7 +32,6 @@ def main():
         print("No outdated packages found.")
         return
     for pkg in outdated_pkgs:
-        print(pkg['name'])
         if update_pkg(pkg['name']):
             print(f"successfully updated: {pkg['name']}")
 

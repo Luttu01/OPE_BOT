@@ -10,6 +10,7 @@ def main():
         cache: dict = json.load(f)
         for key in list(cache.keys()):
             if not os.path.exists(cache[key]['path']):
+                print(f"removing: {cache[key]["title"]}")
                 del cache[key]
     with open(file_path_cache, "w") as f:
         json.dump(cache, f, indent=4)
