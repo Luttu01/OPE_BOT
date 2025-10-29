@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 class SongManager:
     queue: list[Player]  = []
+    history: list[str] = []
     current_player: Player = None
     radio_mode: bool = False
     radio_station: str = None
@@ -41,3 +42,8 @@ class SongManager:
     def reset_history(cls):
         cls.last_player = None
         cls.last_request = ""
+    
+    @classmethod
+    def add_to_history(cls, name: str):
+        with cls.__lock:
+            cls.history.append(name)

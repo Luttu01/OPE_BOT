@@ -25,7 +25,7 @@ from ..util.res import (get_url_from_alias, get_aliases, get_title_from_url,
                              get_duration)
 from ..util.ext import (add_alias, remove_alias, get_random_cached_urls, 
                              add_tag, to_remove, create_tag,
-                             extract_n_mtag, extract_query_mtag, clean_url)
+                             extract_n_mtag, clean_url)
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
@@ -37,11 +37,10 @@ async def on_ready():
     remove_doomed_urls()
     if datetime.datetime.now().weekday() == BotManager.MONDAY:
         reset_weighting()
-
     __song_manager = SongManager()
     __bot_manager = BotManager()
+    print(f'{bot.user.name} is now online.')
 
-    print(f'Logged in as {bot.user.name}')
 
 @bot.event
 async def on_command_error(ctx: Context, error):
@@ -54,6 +53,7 @@ async def on_command_error(ctx: Context, error):
             msg += "\n Try -radio instead"
         await ctx.send(embed=embed_msg_error(msg))
 
+
 @tasks.loop(seconds=1)
 async def on_step(ctx: Context):
     if ctx.voice_client:
@@ -63,6 +63,11 @@ async def on_step(ctx: Context):
         if ctx.voice_client.is_playing():
             SongManager.increment_duration()
         elif not ctx.voice_client.is_playing() and not ctx.voice_client.is_paused():
+            if _now_playing():
+                if not SongManager.history:
+                    SongManager.add_to_history(_now_playing()) 
+                if _now_playing() != SongManager.history[-1]:
+                    SongManager.add_to_history(_now_playing())
             if SongManager.queue:
                 next_song = SongManager.next_song()
                 if next_song == None:
@@ -74,7 +79,8 @@ async def on_step(ctx: Context):
                     await play_random_song(ctx, SongManager.radio_station, random=True)
                 else:
                     await play_random_song(ctx, random=True)
-
+            
+            
 @bot.command(name='join', help='Bot joins your voice channel.')
 async def join(ctx: Context):
     if not ctx.message.author.voice:
@@ -86,6 +92,7 @@ async def join(ctx: Context):
     await channel.connect()
     if not on_step.is_running():
         on_step.start(ctx)
+
 
 @bot.command(name='play', 
              aliases=["p", "pl", "pla", "spela"], 
@@ -386,7 +393,7 @@ async def tags(ctx: Context, mtag: str = None):
     quant = get_songs_with_tag(mtag, True)
     return await ctx.send(embed=embed_msg(f"There are {quant} songs with that tag."))
 
-@bot.command(name="tag", help="add given tag to given url")
+@bot.command(name="tag", help="Add given tag to given url.")
 @in_same_voice_channel()
 async def tag(ctx: Context, url: str, mtag: str):
     if not is_mtag(mtag):
@@ -398,3 +405,17 @@ async def tag(ctx: Context, url: str, mtag: str):
         return await ctx.send(embed=embed_msg_error(f"That song already has the tag: {existing_tag}"))
     else:
         return await ctx.send(embed=embed_msg(f"Successfully tagged your song with: {mtag!r}"))
+    
+@bot.command(name="history", help="Show previously played songs.")
+@in_same_voice_channel()
+async def history(ctx: Context, n: int = 3):
+    if not SongManager.history:
+        return await ctx.send(embed=embed_msg_error("No songs have been played yet."))
+    if n > 100:
+        return await ctx.send(embed=embed_msg_error(f"Cannot show {n} previous titles"))
+    elif n > len(SongManager.history):
+        return await ctx.send(embed=embed_msg(f"Too large request; there are currently only {len(SongManager.history)} songs in history."))
+    msg = ""
+    for i in range(1, n+1):
+        msg += f"{i}. {SongManager.history[-i]}\n"
+    await ctx.send(embed=embed_msg(msg, "History (Latest first)"))

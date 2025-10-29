@@ -2,7 +2,7 @@ from discord.ext import commands
 from ..util.init import init_intents
 
 __title__   = "opebot"
-__version__ = '1.6.3'
+__version__ = '1.7.0'
 __author__  = 'Erik Luttu'
 
 bot = commands.Bot(command_prefix = '-', 

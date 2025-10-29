@@ -21,7 +21,9 @@ async def _play(ctx: Context, player: Player):
     BotManager.last_message = await ctx.send(embed=embed_msg_song(player.title))
     
 def _now_playing() -> str:
-    return SongManager.current_player.title
+    if SongManager.current_player:
+        return SongManager.current_player.title 
+    return None
 
 def toggle_radio() -> bool:
     SongManager.radio_mode = not SongManager.radio_mode
