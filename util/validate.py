@@ -28,7 +28,8 @@ def is_url(query):
 
 def is_playlist(query):
     return "album" in query or \
-           "playlist" in query
+           "playlist" in query or \
+           "&list" in query
 
 def is_alias(alias: str) -> bool:
     return alias in get_aliases()

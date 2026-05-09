@@ -11,7 +11,7 @@ def check_match(query: str) -> tuple[str, float] | tuple[None, None]:
     to_check = get_aliases() + [title.lower() for title in get_titles()] + [q.lower() for q in get_queries()]
     best_match, score = rapidfuzz.process.extractOne(query, 
                                                      to_check,
-                                                     scorer=rapidfuzz.fuzz.WRatio
+                                                     scorer=rapidfuzz.fuzz.ratio
                                                      )[:2]
     if score >= 80:
         if is_alias(best_match):
@@ -39,17 +39,15 @@ def remove_doomed_urls():
     except json.JSONDecodeError:
         data = {}
         remove_list = []
-
     if not remove_list:
         return
-    
     with open(file_path_cache, 'r') as r:
-        cache = json.load(r)
-        for url in remove_list:
-            path: str = cache[url]['path']
-            if path.startswith(folder_path_cache) and os.path.isfile(path):
-                os.remove(path)
-            del cache[url]
+        cache: dict = json.load(r)
+    for url in remove_list:
+        path: str = cache[url]['path']
+        if path.startswith(folder_path_cache) and os.path.isfile(path):
+            os.remove(path)
+        cache.pop(url, None)
     with open(file_path_cache, 'w') as w:
         json.dump(cache, w, indent=4)    
     with open(file_path_toRemove, 'w') as w:

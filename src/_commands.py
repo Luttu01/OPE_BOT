@@ -408,11 +408,11 @@ async def tag(ctx: Context, url: str, mtag: str):
     
 @bot.command(name="history", help="Show previously played songs.")
 @in_same_voice_channel()
-async def history(ctx: Context, n: int = 3):
+async def history(ctx: Context, n: int = 1):
     if not SongManager.history:
         return await ctx.send(embed=embed_msg_error("No songs have been played yet."))
     if n > 100:
-        return await ctx.send(embed=embed_msg_error(f"Cannot show {n} previous titles"))
+        return await ctx.send(embed=embed_msg_error(f"Can at max show 100 previous titles."))
     elif n > len(SongManager.history):
         return await ctx.send(embed=embed_msg(f"Too large request; there are currently only {len(SongManager.history)} songs in history."))
     msg = ""

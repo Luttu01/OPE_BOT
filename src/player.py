@@ -30,8 +30,7 @@ class Player(discord.PCMVolumeTransformer):
         else:
             data = await asyncio.\
                          get_event_loop().\
-                         run_in_executor(None, 
-                                         lambda: BotManager.ytdl.extract_info(url, download=True))
+                         run_in_executor(None, lambda: BotManager.ytdl.extract_info(url, download=True))
             if data is None:
                 return None
             if data.get('_type') == 'playlist':
